@@ -118,7 +118,7 @@ model <- function(x, w, D.patches=NULL, spa.kernel=dexp,
     }
 
 
-    ## FUNCTIONS TO GET RATES AND LOG-LIKELIHOOD ##
+    ## LOG-LIKELIHOOD AND PRIORS ##
     ## POISSON LIKELIHOOD
     ## p(incidence | rates)
     LL.all <- function(R, delta, phi){
@@ -126,18 +126,23 @@ model <- function(x, w, D.patches=NULL, spa.kernel=dexp,
         return(sum(dpois(incid.vec, rates, log=TRUE)))
     }
 
+    R.logprior <- function(val) return(0)
+    delta.logprior <- function(val) return(0)
+    phi.logprior <- function(val) return(0)
+
 
     ## PARAMETER MOVEMENTS ##
     ## MOVE R
     R.ACC <- 0
     R.REJ <- 0
-    R.move <- function(R, sigma=sd.R){
+    R.move <- function(R, delta, phi, sigma=sd.R){
         ## generate proposals ##
         newR <- R + rnorm(n=length(R), mean=0, sd=sd.R)
 
         if(all(newR>=0)){
-            if((r <- log(runif(1))) <=  (LL.all(newR, delta, phi) - LL.all(R, delta, phi))){
-                R <- temp # accept
+            if((r <- log(runif(1))) <=  (LL.all(newR, delta, phi) - LL.all(R, delta, phi) +
+                                         R.logprior(newR) - R.logprior(R))){
+                R <- newR # accept
                 R.ACC <<- R.ACC+1
             } else { # reject
                 R.REJ <<- R.REJ+1
@@ -154,13 +159,14 @@ model <- function(x, w, D.patches=NULL, spa.kernel=dexp,
     ## MOVE SPATIAL PARAM 'DELTA'
     delta.ACC <- 0
     delta.REJ <- 0
-    delta.move <- function(delta, sigma=sd.delta){
+    delta.move <- function(R, delta, phi, sigma=sd.delta){
         ## generate proposals ##
         newdelta <- delta + rnorm(n=length(delta), mean=0, sd=sd.delta)
 
         if(all(newdelta>=0)){
-            if((r <- log(runif(1))) <=  (LL.all(newdelta, delta, phi) - LL.all(delta, delta, phi))){
-                delta <- temp # accept
+            if((r <- log(runif(1))) <=  (LL.all(R, newdelta, phi) - LL.all(R, delta, phi) +
+                                         delta.logprior(newdelta) - delta.logprior(delta))){
+                delta <- newdelta # accept
                 delta.ACC <<- delta.ACC+1
             } else { # reject
                 delta.REJ <<- delta.REJ+1
@@ -177,13 +183,14 @@ model <- function(x, w, D.patches=NULL, spa.kernel=dexp,
     ## MOVE BACKGROUND FORCE OF INFECTION 'phi'
     phi.ACC <- 0
     phi.REJ <- 0
-    phi.move <- function(phi, sigma=sd.phi){
+    phi.move <- function(R, delta, phi, sigma=sd.phi){
         ## generate proposals ##
         newphi <- phi + rnorm(n=length(phi), mean=0, sd=sd.phi)
 
         if(all(newphi>=0)){
-            if((r <- log(runif(1))) <=  (LL.all(newphi, phi, phi) - LL.all(phi, phi, phi))){
-                phi <- temp # accept
+            if((r <- log(runif(1))) <=  (LL.all(R, delta, newphi) - LL.all(R, delta, phi) +
+                                         phi.logprior(newphi) - phi.logprior(phi))){
+                phi <- newphi # accept
                 phi.ACC <<- phi.ACC+1
             } else { # reject
                 phi.REJ <<- phi.REJ+1
@@ -201,9 +208,8 @@ model <- function(x, w, D.patches=NULL, spa.kernel=dexp,
 
     ## MCMC ##
     ## BASIC HEADER
-    header <- "step\tpost\tlikelihood\tprior"
-
-      cat(header, file=file.out)
+    header <- "step\tpost\tlikelihood\tprior\tR\tdelta\tphi"
+    cat(header, file=file.out)
 
 
     ## add first line
@@ -226,13 +232,16 @@ model <- function(x, w, D.patches=NULL, spa.kernel=dexp,
     if(!quiet) cat("\nStarting MCMC: 1")
 
     ## mcmc ##
-    for(i in 1:n){
+    for(i in 1:n.iter){
         ## move stuff ##
-        ## move alpha if needed
-        if(move.alpha) alpha <- alpha.move(alpha, sd.alpha)
+        ## move R if needed
+        if(move.R) R <- R.move(R, delta, phi)
 
-        ## move phi if needed (phi.move makes the necessary moves)
-        if((move.phi|model.unsampled) && (i %% move.phi.every == 0)) phi <- phi.move(phi, sd.phi)
+        ## move delta if needed
+        if(move.delta) delta <- delta.move(R, delta, phi)
+
+        ## move phi if needed
+        if(move.phi) phi <- phi.move(R, delta, phi)
 
         ## if retain this sample ##
         if(i %% sample.every ==0){
@@ -280,7 +289,7 @@ model <- function(x, w, D.patches=NULL, spa.kernel=dexp,
     class(out) <- c("data.frame", "bmmix")
     return(out)
 
- 
-    
+
+
 
 }
