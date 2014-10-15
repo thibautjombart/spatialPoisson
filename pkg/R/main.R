@@ -1,233 +1,46 @@
 
 
-
-###########
-## simMers
-###########
-##
-## ARGUMENTS:
-##
-## R0_alltime: basic reproduction number - at all time steps (this is onset dependent)
-## n.patches: number of patches
-## xy.patches: spatial coordinates of the patches
-## d.gentime: numeric vector giving the proba density function of generation time for T=0, 1, 2, 3... (first entry has to be zero)
-## d.incubation numeric vector giving the proba density function of incubation period for T=0, 1, 2, 3...(first entry has to be zero)
-## disp.patches: a square matrix giving transfer rates between patches (row=from, column=to)
-## REMOVED rate.transfer.case: rate of between-patch contaminations
-## REMOVED rate.import.case: rate of cases importation from the reservoir
-## rate.import.case_matrix: rate of cases importation from the reservoir - matrix, rows all time steps, columns for each patch
-## names: names for the patches
-## max.time: maximum number of time step for which to run the simulation
-## max.infected: maximum number of infected individuals
-## grid.size: size of the spatial grid (use to define xy.patches if not provided)
-## p_iniinf: the proportion of patches with one initial infection (local) case
-## 
-simMers <- function(R0_alltime, n.patches=1, xy.patches=NULL,
-                    d.gentime, d.incubation=d.gentime, disp.patches=NULL,
-                    rate.import.case_matrix=matrix(0, length(max.time), n.patches),  
-                    p_iniinf=0, names=NULL,
-                    max.time=100, max.infected=NULL, grid.size=10){
-
-    ## HANDLE ARGUMENTS ##
-    if(!is.null(xy.patches)){
-        if(is.data.frame(xy.patches)) xy.patches <- as.matrix(xy.patches)
-        if(!is.matrix(xy.patches)) stop("xy.patches is not a matrix")
-        if(nrow(xy.patches)!=n.patches) stop("xy.patches must have one row per patch")
-    }
-    if(is.null(names)) names <- paste("patch",1:n.patches, sep="_")
-
-    ## set max.time
-    if(is.null(max.time)) {
-        max.time <- 5e3
-    }
-
-    ## set max.infected
-    if(is.null(max.infected)) {
-        max.infected <- 1e4
-    }
-
-    ## spatial coordinates of the patches
-    if(is.null(xy.patches)) xy.patches <- matrix(runif(2*n.patches, min=0, max=grid.size), ncol=2)
-    colnames(xy.patches) <- c("x","y")
-
-    ## distances between patches
-    if(is.null(disp.patches)) disp.patches <- as.matrix(dist(xy.patches))
-    disp.patches <- as.matrix(disp.patches)
-
-    ## scale distributions
-    d.gentime <- d.gentime/sum(d.gentime)
-    d.incubation <- d.incubation/sum(d.incubation)
-
-    ## add long tails to distributions
-    d.gentime <- c(d.gentime, rep(0, max.time))
-    d.incubation <- c(d.incubation, rep(0, max.time))
+## to simulate data
+x <- data.frame(onset=sample(as.Date("2014-01-01")+0:10, 30, replace=TRUE), patch=sample(c('a','b','c'), replace=TRUE, 30))
 
 
-    ## AUXILIARY FUNCTIONS ##
-    ## function to build one patch ##
-    makePatch <- function(xy=NULL){
-        ## find spatial coords if not provided
 
-        r=runif(1)
-        if (r < p_iniinf){
-          out <- list(Ninf=1, Tinf=0, xy=xy, type="local")
-        } else {
-          out <- list(Ninf=0)
-        }
+
+model <- function(x){
+    ## CHECKS ##
+    ## if(!require(OutbreakTools)) stop("OutbreakTools is needed")
+    x <- na.omit(x)
+    x$patch <- factor(x$patch)
+    patches <- levels(x$patch)
+    n.patches <- length(patches)
+
+    ## COMPUTE INCIDENCE ##
+    date.range <- range(x$onset)
+    all.dates <- seq(date.range[1],date.range[2],by=1)
+    n.dates <- length(all.dates)
+
+    ## function to get daily incidence
+    get.daily.incid <- function(dates, from, to){
+        out <- table(factor(as.character(dates), levels=as.character(seq(from, to, by=1))))
         return(out)
     }
 
-    ## add cases in a patch ##
-    addCases <- function(patch, n, type="local"){
-        ## add dates of infection for new infected
-        patch$Tinf <- c(patch$Tinf, rep(t, n))
+    ## daily incidence
+    temp <- tapply(x$onset, x$patch, get.daily.incid,
+                    from=date.range[1],
+                    to=date.range[2])
 
-        ## add new infected to counter
-        patch$Ninf <- patch$Ninf + n
+    ## put incidence in the right format
+    incid <- data.frame(date=rep(all.dates,n.patches),
+                        patch=rep(patches, n.dates),
+                        incidence=unlist(temp))
 
-        ## add new type
-        patch$type <- c(patch$type, rep(type, n))
 
-        ## return
-        return(patch)
+    ## FUNCTION TO GET THE LOG-LIKELIHOOD ##
+    ## Poisson likelihood
+    ## p(y|rates)
+    get.LL <- function(y, rates){
+        return(sum(dpois(y, rates, log=TRUE)))
     }
 
-    ## compute global force of infection in a patch
-    ## t is current time
-    forceOfInfection <- function(patch, t){
-        out <- sum(R0_alltime[patch$Tinf]*d.gentime[1+t-patch$Tinf])
-        return(out)
-    }
-
-    ## function defining new infections in a patch ##
-    ## t is the time
-    spreadInPatch <- function(patch, t){
-        ## global force of infection (FOI)
-        global.FOI <-forceOfInfection(patch, t)
-
-        ## draw number of new infected
-        new.inf <- rpois(1, lambda=global.FOI)
-
-        ## add dates of infection for new infected
-        patch <- addCases(patch, new.inf, type="local")
-
-        ## return
-        return(patch)
-    }
-
-    ## migration between patches ##
-    migration <- function(patches, t){
-        ## escape if just one patch
-        if(length(patches)==1) return(patches)
-
-        ## compute force of dispersal
-        ## (Ninf * disp.rate, for each patch)
-        patches.FOI <- sapply(patches, forceOfInfection, t)
-        disp.force <- patches.FOI * disp.patches 
-
-        ## matrix of nb of trans-patch infections
-        ## row = from, column = to
-        nb.trans.inf <- matrix(sapply(as.vector(disp.force), rpois, n=1),ncol=n.patches)
-
-        ###NEW CODE FOR LOCAL INFECTIONS HERE
-        nb.newcases.loc = diag(nb.trans.inf) 
-        diag(nb.trans.inf) = 0
-        
-        ## nb of new cases in each patch
-        nb.newcases <- apply(nb.trans.inf,2,sum)
-
-        ## add cases to the patches
-        patches <- lapply(1:n.patches, function(i) addCases(patches[[i]], nb.newcases[i], type="transfer"))
-        patches <- lapply(1:n.patches, function(i) addCases(patches[[i]], nb.newcases.loc[i], type="local"))
-
-        ## return
-        return(patches)
-    }
-
-    ## importation from reservoir ##
-    importation <- function(patches){
-        ## number of new imported cases per patch
-        nb.import <- rpois(n.patches, rate.import.case_matrix[t, ])
-
-        ## add cases to the patches
-        patches <- lapply(1:n.patches, function(i) addCases(patches[[i]], nb.import[i], type="imported"))
-
-        ## return
-        return(patches)
-    }
-
-    ## choosing multi-step importation
-    multistep_hazard <- function(timestep, stepvalues, steptime){
-      w=which(steptime<=timestep)
-      ind=length(w)+1
-      val=stepvalues[ind]
-      val
-    }
-    
-
-    ## INITIALIZE PATCHES ##
-    patches <- lapply(1:n.patches, function(i) makePatch(xy.patches[i,]))
-    names(patches) <- names
-
-
-    ## RUN SIMULATIONS ##
-    ## continue counter
-    CONTINUE <- TRUE
-
-    ## time
-    t <- 0
-
-    ## output: incidence of local cases
-    incid.local <- sum(sapply(patches, function(e) sum(e$Tinf==t & e$type=="local")))
-
-    ## output: incidence of cross-patch infections
-    incid.transfer <- 0
-
-    ## output: incidence of cross-patch infections
-    incid.import <- 0
-    
-    ## run simulations
-    while(CONTINUE){
-        ## this is a beautiful day, full of opportunities...
-        t <- t+1
-        
-        ## spread disease within patches IGNORE - WE WILL INCLUDE THIS IN MIGRATION CASES
-        #patches <- lapply(patches, spreadInPatch, t)
-
-        ## trans-patches infections AND LOCAL INFECTIONS
-        patches <- migration(patches, t)
-        
-        ## importation
-        patches <- importation(patches)
-
-        ## compute total number of infected
-        total.infected <- sum(sapply(patches, function(e) e$Ninf))
-
-        ## compute local incidence
-        incid.local <- c(incid.local, sum(sapply(patches, function(e) sum(e$Tinf==t & e$type=="local"))))
-
-        ## compute 'transfer' (across patch) incidence
-        incid.transfer <- c(incid.transfer, sum(sapply(patches, function(e) sum(e$Tinf==t & e$type=="transfer"))))
-
-        ## compute 'imports' (from reservoir) incidence
-        incid.import <- c(incid.import, sum(sapply(patches, function(e) sum(e$Tinf==t & e$type=="imported"))))
-
-        ## compute
-        ## update 'CONTINUE'
-        if(t>=max.time ||total.infected>=max.infected) CONTINUE <- FALSE
-    }
-
-
-    ## SHAPE AND RETURN OUTPUT ##
-    incidence <- data.frame(local=incid.local,
-                            transfer=incid.transfer,
-                            imported=incid.import)
-
-    res <- list(incidence=incidence,
-                nb.cases=total.infected,
-                xy=xy.patches,
-                patches=patches)
-
-
-    return(res)
-} # end simMers
+}
