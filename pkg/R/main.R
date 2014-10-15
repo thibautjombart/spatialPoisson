@@ -7,10 +7,13 @@ x <- data.frame(onset=sample(as.Date("2014-01-01")+0:10, 30, replace=TRUE), patc
 
 
 model <- function(x, w, D.patches=NULL, spa.kernel=dexp,
-                  n.iter=100, sample.every=200,
-                  spa.param.ini=1,
-                  lambda.back.ini=0.001,
-                  move.R=TRUE, sd.R=0.005){
+                  n.iter=1000, sample.every=200,
+                  delta.ini=1,
+                  phi.ini=0.001,
+                  move.R=TRUE, sd.R=0.005,
+                  move.delta=TRUE, sd.delta=0.001,
+                  move.phi=TRUE, sd.phi=0.0001
+                  file.out="mcmc.txt", quiet=FALSE){
 
     ## CHECKS / HANDLE ARGUMENTS ##
     x <- na.omit(x)
@@ -97,20 +100,20 @@ model <- function(x, w, D.patches=NULL, spa.kernel=dexp,
     ## GET LAMBDA FOR ALL PATCHES ##
     ## (force of infection experienced by the patches)
     ## computed using matrix product
-    ## (beta %*% P) + lambda.back, with:
+    ## (beta %*% P) + phi, with:
     ## - beta: infectiousness for day (row) x patches (col)
     ## - P: connectivity from patches (row) to patches (col),
     ## standardized by column
-    ## - lambda.back: the background force of infection
+    ## - phi: the background force of infection
     ## here, beta = R * infect.mat
-    ## and P is given by 'spa.kernel(D.pacthes, spa.param)'
+    ## and P is given by 'spa.kernel(D.pacthes, delta)'
     ## but needs to be column-standardized
     ##
-    get.lambdas <- function(R, spa.param, lambda.back){
+    get.lambdas <- function(R, delta, phi){
         return(
             (R*infec.mat %*%
-             prop.table(spa.kernel(D.patches, spa.param),2)
-             ) + lambda.back
+             prop.table(spa.kernel(D.patches, delta),2)
+             ) + phi
             )
     }
 
@@ -118,8 +121,8 @@ model <- function(x, w, D.patches=NULL, spa.kernel=dexp,
     ## FUNCTIONS TO GET RATES AND LOG-LIKELIHOOD ##
     ## POISSON LIKELIHOOD
     ## p(incidence | rates)
-    get.LL <- function(R, spa.param, lambda.back){
-        rates <- as.vector(get.lambdas(R, spa.param, lambda.back))
+    LL.all <- function(R, delta, phi){
+        rates <- as.vector(get.lambdas(R, delta, phi))
         return(sum(dpois(incid.vec, rates, log=TRUE)))
     }
 
@@ -133,7 +136,7 @@ model <- function(x, w, D.patches=NULL, spa.kernel=dexp,
         newR <- R + rnorm(n=length(R), mean=0, sd=sd.R)
 
         if(all(newR>=0)){
-            if((r <- log(runif(1))) <=  (get.LL(newR, spa.param, lambda.back) - get.LL(R, spa.param, lambda.back))){
+            if((r <- log(runif(1))) <=  (LL.all(newR, delta, phi) - LL.all(R, delta, phi))){
                 R <- temp # accept
                 R.ACC <<- R.ACC+1
             } else { # reject
@@ -156,7 +159,7 @@ model <- function(x, w, D.patches=NULL, spa.kernel=dexp,
         newdelta <- delta + rnorm(n=length(delta), mean=0, sd=sd.delta)
 
         if(all(newdelta>=0)){
-            if((r <- log(runif(1))) <=  (get.LL(newdelta, delta, lambda.back) - get.LL(delta, delta, lambda.back))){
+            if((r <- log(runif(1))) <=  (LL.all(newdelta, delta, phi) - LL.all(delta, delta, phi))){
                 delta <- temp # accept
                 delta.ACC <<- delta.ACC+1
             } else { # reject
@@ -179,7 +182,7 @@ model <- function(x, w, D.patches=NULL, spa.kernel=dexp,
         newphi <- phi + rnorm(n=length(phi), mean=0, sd=sd.phi)
 
         if(all(newphi>=0)){
-            if((r <- log(runif(1))) <=  (get.LL(newphi, phi, lambda.back) - get.LL(phi, phi, lambda.back))){
+            if((r <- log(runif(1))) <=  (LL.all(newphi, phi, phi) - LL.all(phi, phi, phi))){
                 phi <- temp # accept
                 phi.ACC <<- phi.ACC+1
             } else { # reject
@@ -197,8 +200,87 @@ model <- function(x, w, D.patches=NULL, spa.kernel=dexp,
 
 
     ## MCMC ##
-    ## INITIALIZATION
-    lambda.back <- lambda.back.ini
-    spa.param <- spa.param.ini
+    ## BASIC HEADER
+    header <- "step\tpost\tlikelihood\tprior"
+
+      cat(header, file=file.out)
+
+
+    ## add first line
+    ## temp: c(loglike, logprior)
+    temp <- c(LL.all(y, x, phi, alpha), LPrior.alpha(alpha))
+
+    ## check that initial LL is not -Inf
+    if(!is.finite(temp[1])) warning("Initial likelihood is zero")
+
+    ## write to file
+    cat("\n", file=file.out, append=TRUE)
+    cat(c(1, sum(temp), temp), sep="\t", append=TRUE, file=file.out)
+    if(move.alpha) cat("", alpha/sum(alpha), sep="\t", append=TRUE, file=file.out)
+    if(move.phi){
+        cat("", as.vector(phi), sep="\t", append=TRUE, file=file.out)
+    } else if(model.unsampled){
+        cat("", as.vector(phi[,K]), sep="\t", append=TRUE, file=file.out)
+    }
+
+    if(!quiet) cat("\nStarting MCMC: 1")
+
+    ## mcmc ##
+    for(i in 1:n){
+        ## move stuff ##
+        ## move alpha if needed
+        if(move.alpha) alpha <- alpha.move(alpha, sd.alpha)
+
+        ## move phi if needed (phi.move makes the necessary moves)
+        if((move.phi|model.unsampled) && (i %% move.phi.every == 0)) phi <- phi.move(phi, sd.phi)
+
+        ## if retain this sample ##
+        if(i %% sample.every ==0){
+            temp <- c(LL.all(y, x, phi, alpha), LPrior.alpha(alpha))
+            cat("\n", file=file.out, append=TRUE)
+            cat(c(i, sum(temp), temp), sep="\t", append=TRUE, file=file.out)
+            if(move.alpha) cat("", alpha/sum(alpha), sep="\t", append=TRUE, file=file.out)
+            if(move.phi) {
+                cat("", as.vector(phi), sep="\t", append=TRUE, file=file.out)
+            } else if(model.unsampled){
+                cat("", as.vector(phi[,K]), sep="\t", append=TRUE, file=file.out)
+            }
+            if(!quiet) cat("..",i)
+        }
+    }
+
+    if(!quiet) cat("..done!\nResults were saved in file:",file.out,"\n")
+
+
+    ## re-read output file ##
+    out <- read.table(file.out, header=TRUE, colClasses="numeric", sep="\t")
+    out$step <- as.integer(out$step)
+
+    ## format using coda ##
+    if(!quiet){
+        ## acceptance rates for alpha
+        if(move.alpha){
+            cat("\nacceptance rate for alpha: ", ALPHA.ACC/(ALPHA.ACC+ALPHA.REJ))
+            cat("\naccepted: ", ALPHA.ACC)
+            cat("\nreject: ", ALPHA.REJ)
+            cat("\n")
+        }
+
+        ## acceptance rates for phi
+        if(move.phi || model.unsampled){
+            cat("\nacceptance rate for phi: ", PHI.ACC/(PHI.ACC+PHI.REJ))
+            cat("\naccepted: ", PHI.ACC)
+            cat("\nreject: ", PHI.REJ)
+            cat("\n")
+        }
+
+    }
+
+
+    class(out) <- c("data.frame", "bmmix")
+    return(out)
+
+ 
+    
 
 }
