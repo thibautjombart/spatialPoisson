@@ -55,9 +55,13 @@ model <- function(x, D.patches=NULL, w){
                     to=date.range[2])
 
     ## put incidence in the right format
-    incid <- data.frame(date=rep(all.dates,n.patches),
-                        patch=rep(patches, n.dates),
-                        incidence=unlist(temp))
+    ## basic matrix
+    incid.mat <- Reduce(cbind,temp)
+    colnames(incid) <- patches
+    rownames(incid) <- as.character(all.dates)
+
+    ## vectorized format for faster computations in dpois
+    incid.vec <- as.vector(incid[-1,]) # first date is removed (infectiousness is 0)
 
 
     ## FUNCTIONS TO GET RATES AND LOG-LIKELIHOOD ##
@@ -77,9 +81,11 @@ model <- function(x, D.patches=NULL, w){
     }
 
     ## 'infec.mat' contains the sum of infectiousness for each day (row) and patch (column)
+    ## basic matrix
     infec.mat <- t(sapply(all.dates, function(t) tapply(x$onset, x$patch, function(e) get.infec(t, e))))
-    
 
+    ## vectorized format for faster computations in dpois
+    infec.vec <- as.vector(infec.mat[-1,]) # first date is removed (infectiousness is 0)
 
 
 }
