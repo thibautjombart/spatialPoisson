@@ -11,6 +11,7 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
                          move.R=TRUE, sd.R=0.005, R.ini=1,
                          move.delta=TRUE, sd.delta=0.001, delta.ini=1,
                          move.phi=TRUE, sd.phi=0.0001, phi.ini=0.001,
+                         tune=TRUE, max.tune=2e4,
                          file.out="mcmc.txt", quiet=FALSE){
 
     ## CHECKS / HANDLE ARGUMENTS ##
@@ -58,8 +59,8 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
 
     ## daily incidence
     temp <- tapply(x$onset, x$patch, get.daily.incid,
-                    from=date.range[1],
-                    to=date.range[2])
+                   from=date.range[1],
+                   to=date.range[2])
 
     ## put incidence in the right format
     ## basic matrix
@@ -163,7 +164,7 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
 
         ## return moved vector
         return(R)
-    }
+    } # end R.move
 
 
     ## MOVE SPATIAL PARAM 'DELTA'
@@ -187,7 +188,7 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
 
         ## return moved vector
         return(delta)
-    }
+    } # end delta.move
 
 
     ## MOVE BACKGROUND FORCE OF INFECTION 'phi'
@@ -211,6 +212,96 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
 
         ## return moved vector
         return(phi)
+    } # end phi.move
+
+
+
+
+    ## TUNING ##
+    stop.tune.R <- stop.tune.delta <- stop.tune.phi <- FALSE
+
+    ## TUNING FUNCTION FOR R
+    R.tune <- function(sd.R){
+        ## jumps too large
+        if((R.ACC/(R.ACC + R.REJ))<0.2){
+            return(sd.R*0.8)
+        }
+
+        ## jumps too small
+        if((R.ACC/(R.ACC + R.REJ))>0.5){
+            return(sd.R*1.2)
+        }
+
+        ## if reaching here, stop tuning R
+        stop.tune.R <<- TRUE
+    } # end R.tune
+
+
+    ## TUNING FUNCTION FOR DELTA
+    delta.tune <- function(sd.delta){
+        ## jumps too large
+        if((delta.ACC/(delta.ACC + delta.REJ))<0.2){
+            return(sd.delta*0.8)
+        }
+
+        ## jumps too small
+        if((delta.ACC/(delta.ACC + delta.REJ))>0.5){
+            return(sd.delta*1.2)
+        }
+
+        ## if reaching here, stop tuning delta
+        stop.tune.delta <<- TRUE
+    } # end delta.tune
+
+
+    ## TUNING FUNCTION FOR PHI
+    phi.tune <- function(sd.phi){
+        ## jumps too large
+        if((phi.ACC/(phi.ACC + phi.REJ))<0.2){
+            return(sd.phi*0.8)
+        }
+
+        ## jumps too small
+        if((phi.ACC/(phi.ACC + phi.REJ))>0.5){
+            return(sd.phi*1.2)
+        }
+
+        ## if reaching here, stop tuning phi
+        stop.tune.phi <<- TRUE
+    } # end phi.tune
+
+
+    ## INITIALIZE VALUES
+    R <- R.ini
+    delta <- delta.ini
+    phi <- phi.ini
+
+    COUNTER <- 0
+    while(tune && (COUNTER<=max.tune)){
+        ## update counter
+        COUNTER <- COUNTER + 1
+
+        ## move stuff ##
+        ## move R if needed
+        if(move.R) R <- R.move(R, delta, phi)
+
+        ## move delta if needed
+        if(move.delta) delta <- delta.move(R, delta, phi)
+
+        ## move phi if needed
+        if(move.phi) phi <- phi.move(R, delta, phi)
+
+        ## change parameters of proposal distributions ##
+        ## (every 100 iterations)
+        if(COUNTER %% 100 ==0){
+            ## update SDs
+            sd.R <- R.tune(sd.R)
+            sd.delta <- delta.tune(sd.delta)
+            sd.phi <- phi.tune(sd.phi)
+
+            ## check if we should stop
+            tune <- !(all(stop.tune.R, stop.tune.delta, stop.tune.phi))
+        }
     }
 
 
@@ -281,7 +372,7 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
             cat("\n")
         }
 
-       ## acceptance rates for delta
+        ## acceptance rates for delta
         if(move.delta){
             cat("\nacceptance rate for delta: ", delta.ACC/(delta.ACC+delta.REJ))
             cat("\naccepted: ", delta.ACC)
