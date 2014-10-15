@@ -6,7 +6,12 @@ x <- data.frame(onset=sample(as.Date("2014-01-01")+0:10, 30, replace=TRUE), patc
 
 
 
-model <- function(x, D.patches=NULL, w){
+model <- function(x, w, D.patches=NULL, spa.kernel=dexp,
+                  n.iter=100, sample.every=200,
+                  spa.param.ini=1,
+                  lambda.back.ini=0.001,
+                  move.R=TRUE, sd.R=0.005){
+
     ## CHECKS / HANDLE ARGUMENTS ##
     x <- na.omit(x)
     x$patch <- factor(x$patch)
@@ -18,7 +23,8 @@ model <- function(x, D.patches=NULL, w){
         D.patches <- matrix(0, ncol=n.patches,nrow=n.patches)
         colnames(D.patches) <- rownames(D.patches) <- patches
     }
-    ## force diagonal to zero
+
+    ## force null diagonal
     diag(D.patches) <- 0
 
     ## useful warnings/errors
@@ -60,19 +66,13 @@ model <- function(x, D.patches=NULL, w){
     colnames(incid) <- patches
     rownames(incid) <- as.character(all.dates)
 
-    ## vectorized format for faster computations in dpois
-    incid.vec <- as.vector(incid[-1,]) # first date is removed (infectiousness is 0)
+    ## store as vector for faster computations in 'dpois'
+    incid.vec <- as.vector(incid.mat)
 
 
-    ## FUNCTIONS TO GET RATES AND LOG-LIKELIHOOD ##
-    ## POISSON LIKELIHOOD
-    ## p(y|rates)
-    get.LL <- function(y, rates){
-        return(sum(dpois(y, rates, log=TRUE)))
-    }
-
-    ## GET BETA FOR A PATCH ##
-    ## get infectiousness for day 'date' and
+    ## COMPUTE INFECTIOUSNESS (CONSTANT PART OF IT) ##
+    ## AUXILIARY FUNCTION:
+    ## gets infectiousness for day 'date' and
     ## a vector of onset dates 'onsets'
     get.infec <- function(date, onsets){
         temp <- as.integer(date-onsets)
@@ -80,12 +80,125 @@ model <- function(x, D.patches=NULL, w){
         return(out)
     }
 
+    ## GET INFECTIOUSNESS
     ## 'infec.mat' contains the sum of infectiousness for each day (row) and patch (column)
     ## basic matrix
     infec.mat <- t(sapply(all.dates, function(t) tapply(x$onset, x$patch, function(e) get.infec(t, e))))
+    infec.per.patch <- apply(infec.mat,2,sum)
 
-    ## vectorized format for faster computations in dpois
-    infec.vec <- as.vector(infec.mat[-1,]) # first date is removed (infectiousness is 0)
+    ## GET BETA FOR ALL PATCHES ##
+    ## (force of infection coming from a given patch at a given time)
+    ## note: R can be a vector
+    get.betas <- function(R){
+        return(R*infec.per.patch)
+    }
 
+
+    ## GET LAMBDA FOR ALL PATCHES ##
+    ## (force of infection experienced by the patches)
+    ## computed using matrix product
+    ## (beta %*% P) + lambda.back, with:
+    ## - beta: infectiousness for day (row) x patches (col)
+    ## - P: connectivity from patches (row) to patches (col),
+    ## standardized by column
+    ## - lambda.back: the background force of infection
+    ## here, beta = R * infect.mat
+    ## and P is given by 'spa.kernel(D.pacthes, spa.param)'
+    ## but needs to be column-standardized
+    ##
+    get.lambdas <- function(R, spa.param, lambda.back){
+        return(
+            (R*infec.mat %*%
+             prop.table(spa.kernel(D.patches, spa.param),2)
+             ) + lambda.back
+            )
+    }
+
+
+    ## FUNCTIONS TO GET RATES AND LOG-LIKELIHOOD ##
+    ## POISSON LIKELIHOOD
+    ## p(incidence | rates)
+    get.LL <- function(R, spa.param, lambda.back){
+        rates <- as.vector(get.lambdas(R, spa.param, lambda.back))
+        return(sum(dpois(incid.vec, rates, log=TRUE)))
+    }
+
+
+    ## PARAMETER MOVEMENTS ##
+    ## MOVE R
+    R.ACC <- 0
+    R.REJ <- 0
+    R.move <- function(R, sigma=sd.R){
+        ## generate proposals ##
+        newR <- R + rnorm(n=length(R), mean=0, sd=sd.R)
+
+        if(all(newR>=0)){
+            if((r <- log(runif(1))) <=  (get.LL(newR, spa.param, lambda.back) - get.LL(R, spa.param, lambda.back))){
+                R <- temp # accept
+                R.ACC <<- R.ACC+1
+            } else { # reject
+                R.REJ <<- R.REJ+1
+            }
+        } else { # reject
+            R.REJ <<- R.REJ+1
+        }
+
+        ## return moved vector
+        return(R)
+    }
+
+
+    ## MOVE SPATIAL PARAM 'DELTA'
+    delta.ACC <- 0
+    delta.REJ <- 0
+    delta.move <- function(delta, sigma=sd.delta){
+        ## generate proposals ##
+        newdelta <- delta + rnorm(n=length(delta), mean=0, sd=sd.delta)
+
+        if(all(newdelta>=0)){
+            if((r <- log(runif(1))) <=  (get.LL(newdelta, delta, lambda.back) - get.LL(delta, delta, lambda.back))){
+                delta <- temp # accept
+                delta.ACC <<- delta.ACC+1
+            } else { # reject
+                delta.REJ <<- delta.REJ+1
+            }
+        } else { # reject
+            delta.REJ <<- delta.REJ+1
+        }
+
+        ## return moved vector
+        return(delta)
+    }
+
+
+    ## MOVE BACKGROUND FORCE OF INFECTION 'phi'
+    phi.ACC <- 0
+    phi.REJ <- 0
+    phi.move <- function(phi, sigma=sd.phi){
+        ## generate proposals ##
+        newphi <- phi + rnorm(n=length(phi), mean=0, sd=sd.phi)
+
+        if(all(newphi>=0)){
+            if((r <- log(runif(1))) <=  (get.LL(newphi, phi, lambda.back) - get.LL(phi, phi, lambda.back))){
+                phi <- temp # accept
+                phi.ACC <<- phi.ACC+1
+            } else { # reject
+                phi.REJ <<- phi.REJ+1
+            }
+        } else { # reject
+            phi.REJ <<- phi.REJ+1
+        }
+
+        ## return moved vector
+        return(phi)
+    }
+
+
+
+
+    ## MCMC ##
+    ## INITIALIZATION
+    lambda.back <- lambda.back.ini
+    spa.param <- spa.param.ini
 
 }
