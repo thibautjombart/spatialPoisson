@@ -11,6 +11,7 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
                          move.R=TRUE, sd.R=0.005, R.ini=1,
                          move.delta=TRUE, sd.delta=0.001, delta.ini=1,
                          move.phi=TRUE, sd.phi=0.0001, phi.ini=0.001,
+                         prior.phi=0.001,
                          tune=TRUE, max.tune=2e4,
                          file.out="mcmc.txt", quiet=FALSE){
 
@@ -133,7 +134,10 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
     delta.logprior <- function(delta) return(0)
 
     ## prior for phi
-    phi.logprior <- function(phi) return(0)
+    phi.logprior <- function(phi){
+        return(dexp(phi, rate=1/prior.phi, log=TRUE))
+    }
+
 
     ## all priors
     all.logprior <- function(R, delta, phi){
@@ -276,6 +280,9 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
     delta <- delta.ini
     phi <- phi.ini
 
+    ## basic message
+    if(!quiet && tune) cat("Starting tuning proposal distributions...\n")
+
     COUNTER <- 0
     while(tune && (COUNTER<=max.tune)){
         ## update counter
@@ -295,12 +302,40 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
         ## (every 100 iterations)
         if(COUNTER %% 100 ==0){
             ## update SDs
-            sd.R <- R.tune(sd.R)
-            sd.delta <- delta.tune(sd.delta)
-            sd.phi <- phi.tune(sd.phi)
+            if(move.R) sd.R <- R.tune(sd.R) else stop.tune.R <- TRUE
+            if(move.delta) sd.delta <- delta.tune(sd.delta) else stop.tune.delta <- TRUE
+            if(move.phi) sd.phi <- phi.tune(sd.phi) else stop.tune.phi <- TRUE
 
             ## check if we should stop
             tune <- !(all(stop.tune.R, stop.tune.delta, stop.tune.phi))
+        }
+    }
+
+    ## basic message
+    if(!quiet && tune){
+        cat("... tuning done\n")
+        ## acceptance rates for R
+        if(move.R){
+            cat("\nacceptance rate for R: ", R.ACC/(R.ACC+R.REJ))
+            cat("\naccepted: ", R.ACC)
+            cat("\nreject: ", R.REJ)
+            cat("\n")
+        }
+
+        ## acceptance rates for delta
+        if(move.delta){
+            cat("\nacceptance rate for delta: ", delta.ACC/(delta.ACC+delta.REJ))
+            cat("\naccepted: ", delta.ACC)
+            cat("\nreject: ", delta.REJ)
+            cat("\n")
+        }
+
+        ## acceptance rates for phi
+        if(move.phi){
+            cat("\nacceptance rate for phi: ", phi.ACC/(phi.ACC+phi.REJ))
+            cat("\naccepted: ", phi.ACC)
+            cat("\nreject: ", phi.REJ)
+            cat("\n")
         }
     }
 
@@ -361,33 +396,6 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
     ## re-read output file ##
     out <- read.table(file.out, header=TRUE, colClasses="numeric", sep="\t")
     out$step <- as.integer(out$step)
-
-    ## format using coda ##
-    if(!quiet){
-        ## acceptance rates for R
-        if(move.R){
-            cat("\nacceptance rate for R: ", R.ACC/(R.ACC+R.REJ))
-            cat("\naccepted: ", R.ACC)
-            cat("\nreject: ", R.REJ)
-            cat("\n")
-        }
-
-        ## acceptance rates for delta
-        if(move.delta){
-            cat("\nacceptance rate for delta: ", delta.ACC/(delta.ACC+delta.REJ))
-            cat("\naccepted: ", delta.ACC)
-            cat("\nreject: ", delta.REJ)
-            cat("\n")
-        }
-
-        ## acceptance rates for phi
-        if(move.phi){
-            cat("\nacceptance rate for phi: ", phi.ACC/(phi.ACC+phi.REJ))
-            cat("\naccepted: ", phi.ACC)
-            cat("\nreject: ", phi.REJ)
-            cat("\n")
-        }
-    }
 
 
     class(out) <- c("data.frame", "epidemicMCMC")
