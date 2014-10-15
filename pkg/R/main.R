@@ -7,13 +7,11 @@ x <- data.frame(onset=sample(as.Date("2014-01-01")+0:10, 30, replace=TRUE), patc
 
 
 epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
-                  n.iter=1000, sample.every=200,
-                  delta.ini=1,
-                  phi.ini=0.001,
-                  move.R=TRUE, sd.R=0.005,
-                  move.delta=TRUE, sd.delta=0.001,
-                  move.phi=TRUE, sd.phi=0.0001
-                  file.out="mcmc.txt", quiet=FALSE){
+                         n.iter=1e5, sample.every=200,
+                         move.R=TRUE, sd.R=0.005, R.ini=1,
+                         move.delta=TRUE, sd.delta=0.001, delta.ini=1,
+                         move.phi=TRUE, sd.phi=0.0001, phi.ini=0.001,
+                         file.out="mcmc.txt", quiet=FALSE){
 
     ## CHECKS / HANDLE ARGUMENTS ##
     x <- na.omit(x)
@@ -31,7 +29,7 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
     diag(D.patches) <- 0
 
     ## useful warnings/errors
-    if(any(D.patches)<0) warning("D.patches has negative entries")
+    if(any(D.patches<0)) warning("D.patches has negative entries")
     if(ncol(D.patches)!= nrow(D.patches)) stop(paste("D.patches is not square",
            nrow(D.patches),"rows,",
            ncol(D.patches), "columns."))
@@ -66,8 +64,8 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
     ## put incidence in the right format
     ## basic matrix
     incid.mat <- Reduce(cbind,temp)
-    colnames(incid) <- patches
-    rownames(incid) <- as.character(all.dates)
+    colnames(incid.mat) <- patches
+    rownames(incid.mat) <- as.character(all.dates)
 
     ## store as vector for faster computations in 'dpois'
     incid.vec <- as.vector(incid.mat)
@@ -218,10 +216,14 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
 
 
     ## MCMC ##
+    ## INITIALIZE VALUES
+    R <- R.ini
+    delta <- delta.ini
+    phi <- phi.ini
+
     ## BASIC HEADER
     header <- "step\tpost\tlikelihood\tprior\tR\tdelta\tphi"
     cat(header, file=file.out)
-
 
     ## add first line
     ## temp: c(loglike, logprior)
@@ -232,7 +234,7 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
 
     ## write to file
     cat("\n", file=file.out, append=TRUE)
-    cat(c(1, sum(temp), temp), sep="\t", append=TRUE, file=file.out)
+    cat(c(1, sum(temp), temp, R, delta, phi), sep="\t", append=TRUE, file=file.out)
 
     ## basic message
     if(!quiet) cat("\nStarting MCMC: 1")
@@ -255,7 +257,7 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
             cat("\n", file=file.out, append=TRUE)
 
             ## add posterior
-            cat(c(i, sum(temp), temp), sep="\t", append=TRUE, file=file.out)
+            cat(c(i, sum(temp), temp, R, delta, phi), sep="\t", append=TRUE, file=file.out)
 
             ## basic message
             if(!quiet) cat("..",i)
