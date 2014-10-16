@@ -305,7 +305,8 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
     if(!quiet && tune) cat("Starting tuning proposal distributions...\n")
 
     COUNTER <- 0
-    while(tune && (COUNTER<=max.tune)){
+    KEEPTUNING <- tune
+    while(KEEPTUNING && (COUNTER<=max.tune)){
         ## update counter
         COUNTER <- COUNTER + 1
 
@@ -328,7 +329,7 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
             if(move.phi) sd.phi <- phi.tune(sd.phi) else stop.tune.phi <- TRUE
 
             ## check if we should stop
-            tune <- !(all(stop.tune.R, stop.tune.delta, stop.tune.phi))
+            KEEPTUNING <- !(all(stop.tune.R, stop.tune.delta, stop.tune.phi))
         }
     }
 
@@ -414,12 +415,28 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
     ## basic message
     if(!quiet) cat("..done!\nResults were saved in file:",file.out,"\n")
 
+    ## BUILD OUTPUT ##
+    out <- list()
     ## re-read output file ##
-    out <- read.table(file.out, header=TRUE, colClasses="numeric", sep="\t")
-    out$step <- as.integer(out$step)
+    out$chains <- read.table(file.out, header=TRUE, colClasses="numeric", sep="\t")
+    out$chains$step <- as.integer(out$chains$step)
 
+    ## matched call ##
+    out$call <- match.call()
 
-    class(out) <- c("data.frame", "epidemicMCMC")
+    ## acceptance rates ##
+    out$AR <- data.frame(accept=c(R.ACC,delta.ACC,phi.ACC),
+               reject=c(R.REJ,delta.REJ,phi.REJ))
+    out$AR$prop <- out$AR$accept / (out$AR$accept + out$AR$reject)
+    rownames(out$AR) <- c("R","delta","phi")
+
+    ## add class, and return ##
+    class(out) <- c("list", "epidemicMCMC")
     return(out)
 
 } # end epidemicMCMC
+
+
+
+
+
