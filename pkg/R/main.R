@@ -5,13 +5,32 @@ x <- data.frame(onset=sample(as.Date("2014-01-01")+0:10, 30, replace=TRUE), patc
 
 
 
-
+##################
+## epidemicMCMC ##
+##################
+## Main function implementing the patch Poisson model
+## Arguments
+## - x: a data.frame with column 'onset' (Date object), and column 'patch'
+## - w: a numeric describing the generation time / serial interval distribution
+## (w[1] is the proba of infection 1 day after infection / symptoms)
+## - D.patches: square matrix of distances between patches
+## - spa.kernel: a function describing the spatial kernel
+## - n.iter: length of the MCMC
+## - sample.every: frequency at which chains are saved
+## - move.[param]: a logical indicating if 'param' should be moved
+## - sd.[param]: the standard deviation of the proposal distribution for 'param'
+## - [param].ini: initial value of 'param'
+## - prior.[param]: parameters of the prior for 'param'
+## - tune: a logical indicating if auto-tuning should be done (target: 20-50% acceptance)
+## - max.tune: the maximum number of iterations for the auto-tuning
+## - file.out: path to the file where MCMC output are written
+## - quiet: a logical indicating if messages should be hidden
 epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
                          n.iter=1e5, sample.every=200,
                          move.R=TRUE, sd.R=0.005, R.ini=1,
                          move.delta=TRUE, sd.delta=0.001, delta.ini=1,
                          move.phi=TRUE, sd.phi=0.0001, phi.ini=0.001,
-                         prior.phi=0.001,
+                         prior.delta=1, prior.phi=0.001,
                          tune=TRUE, max.tune=2e4,
                          file.out="mcmc.txt", quiet=FALSE){
 
@@ -131,7 +150,9 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
     R.logprior <- function(R) return(0)
 
     ## prior for delta
-    delta.logprior <- function(delta) return(0)
+    delta.logprior <- function(delta){
+        return(dexp(delta, rate=1/prior.delta, log=TRUE))
+    }
 
     ## prior for phi
     phi.logprior <- function(phi){
