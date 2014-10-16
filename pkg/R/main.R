@@ -1,7 +1,7 @@
 
 
 ## to simulate data
-x <- data.frame(onset=sample(as.Date("2014-01-01")+0:10, 30, replace=TRUE), patch=sample(c('a','b','c'), replace=TRUE, 30))
+x <- data.frame(onset=sample(as.Date("2014-01-01")+0:100, 2000, replace=TRUE), patch=sample(c('a','b','c','d','e'), replace=TRUE, 2000))
 
 
 
@@ -30,7 +30,7 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
                          move.R=TRUE, sd.R=0.005, R.ini=1,
                          move.delta=TRUE, sd.delta=0.001, delta.ini=1,
                          move.phi=TRUE, sd.phi=0.0001, phi.ini=0.001,
-                         prior.delta=1, prior.phi=0.001,
+                         prior.delta=1, prior.phi=1,
                          tune=TRUE, max.tune=2e4,
                          file.out="mcmc.txt", quiet=FALSE){
 
@@ -338,25 +338,28 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
         cat("... tuning done\n")
         ## acceptance rates for R
         if(move.R){
-            cat("\nacceptance rate for R: ", R.ACC/(R.ACC+R.REJ))
+            cat("\ntuned acceptance rate for R: ", R.ACC/(R.ACC+R.REJ))
             cat("\naccepted: ", R.ACC)
             cat("\nreject: ", R.REJ)
+            cat("\ntotal: ", R.ACC + R.REJ)
             cat("\n")
         }
 
         ## acceptance rates for delta
         if(move.delta){
-            cat("\nacceptance rate for delta: ", delta.ACC/(delta.ACC+delta.REJ))
+            cat("\ntuned acceptance rate for delta: ", delta.ACC/(delta.ACC+delta.REJ))
             cat("\naccepted: ", delta.ACC)
             cat("\nreject: ", delta.REJ)
+            cat("\ntotal: ", delta.ACC + delta.REJ)
             cat("\n")
         }
 
         ## acceptance rates for phi
         if(move.phi){
-            cat("\nacceptance rate for phi: ", phi.ACC/(phi.ACC+phi.REJ))
+            cat("\ntuned acceptance rate for phi: ", phi.ACC/(phi.ACC+phi.REJ))
             cat("\naccepted: ", phi.ACC)
             cat("\nreject: ", phi.REJ)
+            cat("\ntotal: ", phi.ACC + phi.REJ)
             cat("\n")
         }
     }
