@@ -118,23 +118,9 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
         return(t(sapply(2:nrow(N), function(t) get.beta.t(N,t))))
     }
 
-    ## ## GET ALL BETAS (second version, scales poorly with number of cases)
+    ## ## ## GET ALL BETAS (second version, scales poorly with number of cases)
     ## get.beta.all <- function(x) tapply(x$day, x$patch, function(dates) # do by patch
     ##                                    sapply(2:nrow(x), function(t)sum(w[t-dates[dates<t]]))) # sum infectiousnesses
-
-
-
-    ## 'infec.mat' contains the sum of infectiousness for each day (row) and patch (column)
-    ## basic matrix
-    infec.mat <- t(sapply(all.dates, function(t) tapply(x$onset, x$patch, function(e) get.infec(t, e))))
-    infec.per.patch <- apply(infec.mat,2,sum)
-
-    ## GET BETA FOR ALL PATCHES ##
-    ## (force of infection coming from a given patch at a given time)
-    ## note: R can be a vector
-    get.betas <- function(R){
-        return(R*infec.per.patch)
-    }
 
 
     ## GET LAMBDA FOR ALL PATCHES ##
@@ -149,9 +135,9 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
     ## and P is given by 'spa.kernel(D.pacthes, delta)'
     ## but needs to be column-standardized
     ##
-    get.lambdas <- function(R, delta, rho){
+    get.lambdas <- function(N, R, delta){
         return(
-            (R*infec.mat %*%
+            (R* get.betas(N) %*%
              prop.table(spa.kernel(D.patches, delta),2)
              )
             )
@@ -159,18 +145,35 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
 
 
     ## LOG-LIKELIHOOD AND PRIORS ##
-    ## POISSON LIKELIHOOD
-    ## p(incidence | rates)
-    LL <- function(R, delta, rho){
-        rates <- as.vector(get.lambdas(R, delta, rho))
-        return(sum(dpois(incid.vec, rates, log=TRUE)))
+
+    ## GENERAL LIKELIHOOD
+    ## p(I|N, pi) p(N|R, delta) p(R|rho)
+    LL.all <- function(I,N,pi,R,delta,rho){
+        return(LL.I(I,N,pi) + LL.N(N,R,delta) + LL.R(R,rho))
     }
 
+    ## PROBA OF OBSERVED INCIDENCE
+    ## p(I|N, pi)
+    LL.I <- function(I,N,pi){
+        return(dbinom(I, size=N, prob=pi, log=TRUE))
+    }
+
+    ## PROBA OF ACTUAL (AUGMENTED) INCIDENCE
+    ## p(N | R, delta)
+    LL.N <- function(N, R, delta){
+        rates <- as.vector(get.lambdas(N, R, delta))
+        return(sum(dpois(as.vector(N), rates, log=TRUE)))
+    }
+
+    ## PROBA OF TRANSMISSIBILITY GIVEN ITS HYPERPARAM
     ## p(R|rho)
     LL.R <- function(R,rho){
         return(dgamma(R, shape=rho[1], rate=rho[2], log=TRUE))
     }
 
+
+
+    ## PROBA OF OSERVED
     ## PRIORS ##
     ## all priors
     logprior.all <- function(delta, rho){
