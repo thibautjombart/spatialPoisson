@@ -30,7 +30,8 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
                          move.R=TRUE, sd.R=0.005, R.ini=1,
                          move.delta=TRUE, sd.delta=0.001, delta.ini=1,
                          move.rho=TRUE, sd.rho=0.0001, rho.ini=0.001,
-                         prior.delta=1, prior.rho=1,
+                         logprior.delta=function(x) dexp(x, rate=1,log=TRUE),
+                         logprior.rho=function(x) 0,
                          tune=TRUE, max.tune=2e4,
                          file.out="mcmc.txt", quiet=FALSE){
 
@@ -151,23 +152,9 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
     }
 
     ## PRIORS ##
-    ## prior for R
-    logprior.R <- function(R) return(0)
-
-    ## prior for delta
-    logprior.delta <- function(delta){
-        return(dexp(delta, rate=1/prior.delta, log=TRUE))
-    }
-
-    ## prior for rho
-    logprior.rho <- function(rho){
-        return(dexp(rho, rate=1/prior.rho, log=TRUE))
-    }
-
-
     ## all priors
-    logprior.all <- function(R, delta, rho){
-        return(logprior.R(R) + logprior.delta(delta) + logprior.rho(rho))
+    logprior.all <- function(delta, rho){
+        return(logprior.delta(delta) + logprior.rho(rho))
     }
 
 
