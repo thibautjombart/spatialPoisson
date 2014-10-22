@@ -1,7 +1,7 @@
 
 
 ## to simulate data
-x <- data.frame(onset=sample(as.Date("2014-01-01")+0:100, 2000, replace=TRUE), patch=sample(c('a','b','c','d','e'), replace=TRUE, 2000))
+x <- data.frame(onset=sample(as.Date("2014-01-01")+0:300, 5000, replace=TRUE), patch=sample(c('a','b','c','d','e'), replace=TRUE, 5000))
 
 
 
@@ -40,6 +40,7 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
     x$patch <- factor(x$patch)
     patches <- levels(x$patch)
     n.patches <- length(patches)
+    x$day <- as.integer(x$onset-min(x$onset))
 
     ## handle empty distance matrix between patches
     if(is.null(D.patches)){
@@ -103,7 +104,26 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
         return(out)
     }
 
-    ## GET INFECTIOUSNESS
+
+    ## GET INFECTIOUSNESS ##
+
+    ## GET BETA FOR ALL PATCHES AT TIME T
+    ## beta_t_i: infectiousness due to individuals in patch 'i' at time 't'
+    ## beta_t^i = sum_{s=1}^{t-1} N_s^i w(t-s)
+    ## N is a matrix of incidence (row=dates,col=patches)
+    get.betas.t <- function(N,t) return(apply(incid.mat[1:(t-1),,drop=FALSE] * w[(t-1):1], 2, sum))
+
+    ## GET ALL BETAS (excluding t=1)
+    get.betas <- function(N) {
+        return(t(sapply(2:nrow(N), function(t) get.beta.t(N,t))))
+    }
+
+    ## ## GET ALL BETAS (second version, scales poorly with number of cases)
+    ## get.beta.all <- function(x) tapply(x$day, x$patch, function(dates) # do by patch
+    ##                                    sapply(2:nrow(x), function(t)sum(w[t-dates[dates<t]]))) # sum infectiousnesses
+
+
+
     ## 'infec.mat' contains the sum of infectiousness for each day (row) and patch (column)
     ## basic matrix
     infec.mat <- t(sapply(all.dates, function(t) tapply(x$onset, x$patch, function(e) get.infec(t, e))))
@@ -120,7 +140,7 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
     ## GET LAMBDA FOR ALL PATCHES ##
     ## (force of infection experienced by the patches)
     ## computed using matrix product
-    ## (beta %*% P) + rho, with:
+    ## (beta %*% P) with:
     ## - beta: infectiousness for day (row) x patches (col)
     ## - P: connectivity from patches (row) to patches (col),
     ## standardized by column
