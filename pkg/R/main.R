@@ -132,7 +132,7 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
         return(
             (R*infec.mat %*%
              prop.table(spa.kernel(D.patches, delta),2)
-             ) + rho
+             )
             )
     }
 
@@ -145,24 +145,29 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
         return(sum(dpois(incid.vec, rates, log=TRUE)))
     }
 
+    ## p(R|rho)
+    LL.R <- function(R,rho){
+        return(dgamma(R, shape=rho[1], rate=rho[2], log=TRUE))
+    }
+
     ## PRIORS ##
     ## prior for R
-    R.logprior <- function(R) return(0)
+    logprior.R <- function(R) return(0)
 
     ## prior for delta
-    delta.logprior <- function(delta){
+    logprior.delta <- function(delta){
         return(dexp(delta, rate=1/prior.delta, log=TRUE))
     }
 
     ## prior for rho
-    rho.logprior <- function(rho){
+    logprior.rho <- function(rho){
         return(dexp(rho, rate=1/prior.rho, log=TRUE))
     }
 
 
     ## all priors
-    all.logprior <- function(R, delta, rho){
-        return(R.logprior(R) + delta.logprior(delta) + rho.logprior(rho))
+    logprior.all <- function(R, delta, rho){
+        return(logprior.R(R) + logprior.delta(delta) + logprior.rho(rho))
     }
 
 
@@ -177,7 +182,7 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
 
         if(all(newR>=0)){
             if((r <- log(runif(1))) <=  (LL(newR, delta, rho) - LL(R, delta, rho) +
-                                         R.logprior(newR) - R.logprior(R))){
+                                         logprior.R(newR) - logprior.R(R))){
                 R <- newR # accept
                 R.ACC <<- R.ACC+1
             } else { # reject
@@ -201,7 +206,7 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
 
         if(all(newdelta>=0)){
             if((r <- log(runif(1))) <=  (LL(R, newdelta, rho) - LL(R, delta, rho) +
-                                         delta.logprior(newdelta) - delta.logprior(delta))){
+                                         logprior.delta(newdelta) - logprior.delta(delta))){
                 delta <- newdelta # accept
                 delta.ACC <<- delta.ACC+1
             } else { # reject
@@ -225,7 +230,7 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
 
         if(all(newrho>=0)){
             if((r <- log(runif(1))) <=  (LL(R, delta, newrho) - LL(R, delta, rho) +
-                                         rho.logprior(newrho) - rho.logprior(rho))){
+                                         logprior.rho(newrho) - logprior.rho(rho))){
                 rho <- newrho # accept
                 rho.ACC <<- rho.ACC+1
             } else { # reject
@@ -378,7 +383,7 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
 
     ## add first line
     ## temp: c(loglike, logprior)
-    temp <- c(LL(R, delta, rho), all.logprior(R, delta, rho))
+    temp <- c(LL(R, delta, rho), logprior.all(R, delta, rho))
 
     ## check that initial LL is not -Inf
     if(!is.finite(temp[1])) warning("Initial likelihood is zero")
@@ -404,7 +409,7 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
 
         ## if retain this sample ##
         if(i %% sample.every ==0){
-            temp <- c(LL(R, delta, rho), all.logprior(R, delta, rho))
+            temp <- c(LL(R, delta, rho), logprior.all(R, delta, rho))
             cat("\n", file=file.out, append=TRUE)
 
             ## add posterior
