@@ -2,6 +2,27 @@
 
 ## to simulate data
 x <- data.frame(onset=sample(as.Date("2014-01-01")+0:300, 5000, replace=TRUE), patch=sample(c('a','b','c','d','e'), replace=TRUE, 5000))
+w <- c(1,2,1)
+D.patches=NULL
+spa.kernel=dexp
+n.iter=1e5
+sample.every=200
+move.R=TRUE
+sd.R=0.005
+R.ini=1
+move.delta=TRUE
+sd.delta=0.001
+delta.ini=1
+move.rho=TRUE
+sd.rho=0.0001
+rho.ini=0.001
+logprior.delta=function(x) dexp(x, rate=1,log=TRUE)
+logprior.rho=function(x) 0
+tune=TRUE
+max.tune=2e4
+file.out="mcmc.txt"
+quiet=FALSE
+
 
 
 
