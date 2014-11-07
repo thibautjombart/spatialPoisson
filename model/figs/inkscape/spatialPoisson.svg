@@ -1,0 +1,619 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:xlink="http://www.w3.org/1999/xlink"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="744.09448819"
+   height="1052.3622047"
+   id="svg2"
+   version="1.1"
+   inkscape:version="0.48.4 r9939"
+   sodipodi:docname="spatialPoisson.svg">
+  <defs
+     id="defs4">
+    <marker
+       inkscape:stockid="Arrow2Mend"
+       orient="auto"
+       refY="0.0"
+       refX="0.0"
+       id="Arrow2Mend"
+       style="overflow:visible;">
+      <path
+         id="path3853"
+         style="fill-rule:evenodd;stroke-width:0.62500000;stroke-linejoin:round;"
+         d="M 8.7185878,4.0337352 L -2.2072895,0.016013256 L 8.7185884,-4.0017078 C 6.9730900,-1.6296469 6.9831476,1.6157441 8.7185878,4.0337352 z "
+         transform="scale(0.6) rotate(180) translate(0,0)" />
+    </marker>
+    <marker
+       inkscape:stockid="Arrow2Mend"
+       orient="auto"
+       refY="0"
+       refX="0"
+       id="Arrow2Mend-6"
+       style="overflow:visible">
+      <path
+         inkscape:connector-curvature="0"
+         id="path3853-7"
+         style="fill-rule:evenodd;stroke-width:0.625;stroke-linejoin:round"
+         d="M 8.7185878,4.0337352 -2.2072895,0.01601326 8.7185884,-4.0017078 c -1.7454984,2.3720609 -1.7354408,5.6174519 -6e-7,8.035443 z"
+         transform="scale(-0.6,-0.6)" />
+    </marker>
+    <marker
+       inkscape:stockid="Arrow2Mend"
+       orient="auto"
+       refY="0"
+       refX="0"
+       id="Arrow2Mend-1"
+       style="overflow:visible">
+      <path
+         inkscape:connector-curvature="0"
+         id="path3853-2"
+         style="fill-rule:evenodd;stroke-width:0.625;stroke-linejoin:round"
+         d="M 8.7185878,4.0337352 -2.2072895,0.01601326 8.7185884,-4.0017078 c -1.7454984,2.3720609 -1.7354408,5.6174519 -6e-7,8.035443 z"
+         transform="scale(-0.6,-0.6)" />
+    </marker>
+  </defs>
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="1.4"
+     inkscape:cx="433.92975"
+     inkscape:cy="658.28225"
+     inkscape:document-units="px"
+     inkscape:current-layer="layer1"
+     showgrid="false"
+     inkscape:window-width="1440"
+     inkscape:window-height="873"
+     inkscape:window-x="0"
+     inkscape:window-y="0"
+     inkscape:window-maximized="1" />
+  <metadata
+     id="metadata7">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title></dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1">
+    <image
+       y="255.29076"
+       x="252.59247"
+       id="image2993"
+       xlink:href="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0a
+HBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIy
+MjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAFlAhkDASIA
+AhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQA
+AAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3
+ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWm
+p6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEA
+AwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSEx
+BhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElK
+U1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3
+uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwDzHrR0
+oozX0p4AUueKbmkzxQFh2aTNNozSuOwvelHWk96M80AKDS03NGaBDqKTNGaYC0YpuaXNAWFozTc0
+A0BYXOKTJpDRSGLSUUlAxc0UlLRYApKXvRQAYpKWlxxQISjFLiigLiYoxTsUuKLBcZilxTsUYpiu
+JijFLjmjFABigClxRigVxMUoFLRQAmKKWimIAKMUUtACUUtFABmiiigAzSUUGgA5paTPvQTQAv1p
+O9JmjNK4DqKYTS5ouFhaKbuozRcdh3TmjOabmkzQFh2aUUzNGaAsOJopuaTNK47D6Sm596M0XCwu
+aQmkpM0DsKTSZpMUuPpSGKTSZoophYM0ZpKKAHUUlFAB2paKBQAClFJ70UALSUfhS9qBCZoo70UD
+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
+GFKaSj8aACijFLQAUUCnYoC42lAp2KWmK43FLilpaLEhijFFGaACijOaTNAC0ZpuaM0BYdR060mc
+U0nJyaLhYcTk80hPpSE0maLjsPzimmm5opXGLmlzSdqQ0ALSUUUDCg0lFABRR2ooAWiiigBaTNFL
+QDDNLmm0ZoAdmjNJSUCsOzSZpM0UDsLmjNJSUALmjPNJRQFhc0lBpKAFooooAKKKKACiiigBKMUt
+GKACkpaXFADaWlwaXFAXG4pcU7FGKBXEApce1OxRinYVxoHNLinYooFcSilxRQBFR3oo/CkWGKKX
+mgUwClxxS4pe1IkQCil60gphcUdKKM0maBCjiikzSbqB2HE0hNNzRmi4WFzRmm0d6QxaCcUhPpSd
+6Bi5ozSd6KAFzigUlLQAUlFHNABR2pKKAFzRRRQAGiiigApaTFJQA6iiigAooooAKKD0oFACUtFF
+ACUUtFACUd6MUGgBKWiloASilxSYoAKKWjFAxKKdijFAriUuKXFLgUCuNxS4pRS4p2FcbjijFPxR
+xQK43FLtpaKAExS4paBQISjFLSUwCiijNABRmmk0ZpXGMo7UUUix1FFFMTFpaKKBCHijNFFACE0m
+aKKQwpuaKKCgooooEL7etITjiiigYdqSiigQUtFFACZpetFFABRmiigBKDRRSGFLRRTAXFFFFAgN
+JRRQAveiiigYCloooEGKKKKAEFHaiigA70tFFACUUUUAJS0UUAApRRRQAuKKKKYhaSiigQtKOlFF
+AgpaKKADtSZ4oooAM80tFFABSZoooACe1B60UUAIScUmaKKRSG/jRRRQM//Z
+"
+       height="177"
+       width="266.24368"
+       inkscape:export-filename="/home/thibaut/Dropbox/Ebola/spatialPoisson/figs/spatialPoisson.png"
+       inkscape:export-xdpi="150"
+       inkscape:export-ydpi="150" />
+    <path
+       sodipodi:type="arc"
+       style="fill:#ffffff;fill-opacity:0.72566373;stroke:none"
+       id="path2996"
+       sodipodi:cx="168.69548"
+       sodipodi:cy="247.2706"
+       sodipodi:rx="22.223356"
+       sodipodi:ry="22.223356"
+       d="m 190.91884,247.2706 a 22.223356,22.223356 0 1 1 -44.44672,0 22.223356,22.223356 0 1 1 44.44672,0 z"
+       transform="matrix(0.35680278,0,0,0.35680278,221.75839,211.31009)"
+       inkscape:export-filename="/home/thibaut/Dropbox/Ebola/spatialPoisson/figs/spatialPoisson.png"
+       inkscape:export-xdpi="150"
+       inkscape:export-ydpi="150" />
+    <path
+       transform="matrix(0.17840139,0,0,0.17840139,291.14025,247.49415)"
+       sodipodi:type="arc"
+       style="fill:#ffffff;fill-opacity:0.72566373;stroke:none"
+       id="path2996-0"
+       sodipodi:cx="168.69548"
+       sodipodi:cy="247.2706"
+       sodipodi:rx="22.223356"
+       sodipodi:ry="22.223356"
+       d="m 190.91884,247.2706 a 22.223356,22.223356 0 1 1 -44.44672,0 22.223356,22.223356 0 1 1 44.44672,0 z"
+       inkscape:export-filename="/home/thibaut/Dropbox/Ebola/spatialPoisson/figs/spatialPoisson.png"
+       inkscape:export-xdpi="150"
+       inkscape:export-ydpi="150" />
+    <path
+       transform="matrix(0.64873231,0,0,0.64873231,189.39996,172.68026)"
+       sodipodi:type="arc"
+       style="fill:#ffffff;fill-opacity:0.72566373;stroke:none"
+       id="path2996-0-1"
+       sodipodi:cx="168.69548"
+       sodipodi:cy="247.2706"
+       sodipodi:rx="22.223356"
+       sodipodi:ry="22.223356"
+       d="m 190.91884,247.2706 a 22.223356,22.223356 0 1 1 -44.44672,0 22.223356,22.223356 0 1 1 44.44672,0 z"
+       inkscape:export-filename="/home/thibaut/Dropbox/Ebola/spatialPoisson/figs/spatialPoisson.png"
+       inkscape:export-xdpi="150"
+       inkscape:export-ydpi="150" />
+    <path
+       transform="matrix(0.35680278,0,0,0.35680278,277.24138,224.21606)"
+       sodipodi:type="arc"
+       style="fill:#ffffff;fill-opacity:0.72566373;stroke:none"
+       id="path2996-00"
+       sodipodi:cx="168.69548"
+       sodipodi:cy="247.2706"
+       sodipodi:rx="22.223356"
+       sodipodi:ry="22.223356"
+       d="m 190.91884,247.2706 a 22.223356,22.223356 0 1 1 -44.44672,0 22.223356,22.223356 0 1 1 44.44672,0 z"
+       inkscape:export-filename="/home/thibaut/Dropbox/Ebola/spatialPoisson/figs/spatialPoisson.png"
+       inkscape:export-xdpi="150"
+       inkscape:export-ydpi="150" />
+    <path
+       style="fill:#ffffff;stroke:#ffffff;stroke-width:0.35680279px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="m 311.55248,326.28991 18.88704,-10.10549"
+       id="path4315"
+       inkscape:connector-type="polyline"
+       inkscape:connector-curvature="0"
+       inkscape:connection-start="#path2996-0-1"
+       inkscape:connection-start-point="d4"
+       inkscape:connection-end="#path2996-00"
+       inkscape:connection-end-point="d4"
+       inkscape:export-filename="/home/thibaut/Dropbox/Ebola/spatialPoisson/figs/spatialPoisson.png"
+       inkscape:export-xdpi="150"
+       inkscape:export-ydpi="150" />
+    <path
+       style="fill:none;stroke:#ffffff;stroke-width:0.35680279px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="m 292.35526,320.212 -6.84025,-13.59069"
+       id="path4317"
+       inkscape:connector-type="polyline"
+       inkscape:connector-curvature="0"
+       inkscape:connection-start="#path2996-0-1"
+       inkscape:connection-start-point="d4"
+       inkscape:connection-end="#path2996"
+       inkscape:connection-end-point="d4"
+       inkscape:export-filename="/home/thibaut/Dropbox/Ebola/spatialPoisson/figs/spatialPoisson.png"
+       inkscape:export-xdpi="150"
+       inkscape:export-ydpi="150" />
+    <path
+       style="fill:none;stroke:#ffffff;stroke-width:0.35680279px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="m 305.68868,320.40408 13.66319,-25.30714"
+       id="path4319"
+       inkscape:connector-type="polyline"
+       inkscape:connector-curvature="0"
+       inkscape:connection-start="#path2996-0-1"
+       inkscape:connection-start-point="d4"
+       inkscape:connection-end="#path2996-0"
+       inkscape:connection-end-point="d4"
+       inkscape:export-filename="/home/thibaut/Dropbox/Ebola/spatialPoisson/figs/spatialPoisson.png"
+       inkscape:export-xdpi="150"
+       inkscape:export-ydpi="150" />
+    <path
+       transform="matrix(0.17840139,0,0,0.17840139,315.26956,235.57717)"
+       sodipodi:type="arc"
+       style="fill:#ffffff;fill-opacity:0.72566373;stroke:none"
+       id="path2996-0-3"
+       sodipodi:cx="168.69548"
+       sodipodi:cy="247.2706"
+       sodipodi:rx="22.223356"
+       sodipodi:ry="22.223356"
+       d="m 190.91884,247.2706 a 22.223356,22.223356 0 1 1 -44.44672,0 22.223356,22.223356 0 1 1 44.44672,0 z"
+       inkscape:export-filename="/home/thibaut/Dropbox/Ebola/spatialPoisson/figs/spatialPoisson.png"
+       inkscape:export-xdpi="150"
+       inkscape:export-ydpi="150" />
+    <path
+       transform="matrix(0.12106102,0,0,0.12106102,256.64038,247.71688)"
+       sodipodi:type="arc"
+       style="fill:#ffffff;fill-opacity:0.72566373;stroke:none"
+       id="path2996-0-5"
+       sodipodi:cx="168.69548"
+       sodipodi:cy="247.2706"
+       sodipodi:rx="22.223356"
+       sodipodi:ry="22.223356"
+       d="m 190.91884,247.2706 a 22.223356,22.223356 0 1 1 -44.44672,0 22.223356,22.223356 0 1 1 44.44672,0 z"
+       inkscape:export-filename="/home/thibaut/Dropbox/Ebola/spatialPoisson/figs/spatialPoisson.png"
+       inkscape:export-xdpi="150"
+       inkscape:export-ydpi="150" />
+    <path
+       transform="matrix(0.09812486,0,0,0.09812486,346.39713,259.7598)"
+       sodipodi:type="arc"
+       style="fill:#ffffff;fill-opacity:0.72566373;stroke:none"
+       id="path2996-0-11"
+       sodipodi:cx="168.69548"
+       sodipodi:cy="247.2706"
+       sodipodi:rx="22.223356"
+       sodipodi:ry="22.223356"
+       d="m 190.91884,247.2706 a 22.223356,22.223356 0 1 1 -44.44672,0 22.223356,22.223356 0 1 1 44.44672,0 z"
+       inkscape:export-filename="/home/thibaut/Dropbox/Ebola/spatialPoisson/figs/spatialPoisson.png"
+       inkscape:export-xdpi="150"
+       inkscape:export-ydpi="150" />
+    <path
+       style="fill:none;stroke:#ffffff;stroke-width:0.35680279px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="M 280.2211,291.79647 277.64923,280.278"
+       id="path4353"
+       inkscape:connector-type="polyline"
+       inkscape:connector-curvature="0"
+       inkscape:connection-start="#path2996"
+       inkscape:connection-start-point="d4"
+       inkscape:connection-end="#path2996-0-5"
+       inkscape:connection-end-point="d4"
+       inkscape:export-filename="/home/thibaut/Dropbox/Ebola/spatialPoisson/figs/spatialPoisson.png"
+       inkscape:export-xdpi="150"
+       inkscape:export-ydpi="150" />
+    <path
+       style="fill:none;stroke:#ffffff;stroke-width:0.35680279px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="m 324.79132,289.85155 17.01818,-8.40494"
+       id="path4355"
+       inkscape:connector-type="polyline"
+       inkscape:connector-curvature="0"
+       inkscape:connection-start="#path2996-0"
+       inkscape:connection-start-point="d4"
+       inkscape:connection-end="#path2996-0-3"
+       inkscape:connection-end-point="d4"
+       inkscape:export-filename="/home/thibaut/Dropbox/Ebola/spatialPoisson/figs/spatialPoisson.png"
+       inkscape:export-xdpi="150"
+       inkscape:export-ydpi="150" />
+    <path
+       style="fill:#ffffff;stroke:#ffffff;stroke-width:0.35680279px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="m 349.21553,280.63925 11.61698,2.86216"
+       id="path4357"
+       inkscape:connector-type="polyline"
+       inkscape:connector-curvature="0"
+       inkscape:connection-end-point="d4"
+       inkscape:connection-end="#path2996-0-11"
+       inkscape:connection-start-point="d4"
+       inkscape:connection-start="#path2996-0-3"
+       inkscape:export-filename="/home/thibaut/Dropbox/Ebola/spatialPoisson/figs/spatialPoisson.png"
+       inkscape:export-xdpi="150"
+       inkscape:export-ydpi="150" />
+    <path
+       style="fill:none;stroke:#ffffff;stroke-width:0.35680279px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="m 342.73004,306.54283 18.7634,-20.89705"
+       id="path4359"
+       inkscape:connector-type="polyline"
+       inkscape:connector-curvature="0"
+       inkscape:connection-start="#path2996-00"
+       inkscape:connection-start-point="d4"
+       inkscape:connection-end="#path2996-0-11"
+       inkscape:connection-end-point="d4"
+       inkscape:export-filename="/home/thibaut/Dropbox/Ebola/spatialPoisson/figs/spatialPoisson.png"
+       inkscape:export-xdpi="150"
+       inkscape:export-ydpi="150" />
+    <path
+       style="fill:none;stroke:#ffffff;stroke-width:0.35680279px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="m 323.66914,294.73787 8.89649,11.44443"
+       id="path4361"
+       inkscape:connector-type="polyline"
+       inkscape:connector-curvature="0"
+       inkscape:connection-start="#path2996-0"
+       inkscape:connection-start-point="d4"
+       inkscape:connection-end="#path2996-00"
+       inkscape:connection-end-point="d4"
+       inkscape:export-filename="/home/thibaut/Dropbox/Ebola/spatialPoisson/figs/spatialPoisson.png"
+       inkscape:export-xdpi="150"
+       inkscape:export-ydpi="150" />
+    <path
+       style="fill:none;stroke:#ffffff;stroke-width:0.35680279px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="m 344.43158,283.54475 -5.13222,21.18983"
+       id="path4363"
+       inkscape:connector-type="polyline"
+       inkscape:connector-curvature="0"
+       inkscape:connection-start="#path2996-0-3"
+       inkscape:connection-start-point="d4"
+       inkscape:connection-end="#path2996-00"
+       inkscape:connection-end-point="d4"
+       inkscape:export-filename="/home/thibaut/Dropbox/Ebola/spatialPoisson/figs/spatialPoisson.png"
+       inkscape:export-xdpi="150"
+       inkscape:export-ydpi="150" />
+    <path
+       transform="matrix(0.12106102,0,0,0.12106102,286.20404,247.97174)"
+       sodipodi:type="arc"
+       style="fill:#ffffff;fill-opacity:0.72566373;stroke:none"
+       id="path2996-0-5-6"
+       sodipodi:cx="168.69548"
+       sodipodi:cy="247.2706"
+       sodipodi:rx="22.223356"
+       sodipodi:ry="22.223356"
+       d="m 190.91884,247.2706 a 22.223356,22.223356 0 1 1 -44.44672,0 22.223356,22.223356 0 1 1 44.44672,0 z"
+       inkscape:export-filename="/home/thibaut/Dropbox/Ebola/spatialPoisson/figs/spatialPoisson.png"
+       inkscape:export-xdpi="150"
+       inkscape:export-ydpi="150" />
+    <path
+       transform="matrix(0.35680278,0,0,0.35680278,221.20442,283.72276)"
+       sodipodi:type="arc"
+       style="fill:#ffffff;fill-opacity:0.72566373;stroke:none"
+       id="path2996-8"
+       sodipodi:cx="168.69548"
+       sodipodi:cy="247.2706"
+       sodipodi:rx="22.223356"
+       sodipodi:ry="22.223356"
+       d="m 190.91884,247.2706 a 22.223356,22.223356 0 1 1 -44.44672,0 22.223356,22.223356 0 1 1 44.44672,0 z"
+       inkscape:export-filename="/home/thibaut/Dropbox/Ebola/spatialPoisson/figs/spatialPoisson.png"
+       inkscape:export-xdpi="150"
+       inkscape:export-ydpi="150" />
+    <path
+       transform="matrix(0.35680278,0,0,0.35680278,256.88469,286.78106)"
+       sodipodi:type="arc"
+       style="fill:#ffffff;fill-opacity:0.72566373;stroke:none"
+       id="path2996-02"
+       sodipodi:cx="168.69548"
+       sodipodi:cy="247.2706"
+       sodipodi:rx="22.223356"
+       sodipodi:ry="22.223356"
+       d="m 190.91884,247.2706 a 22.223356,22.223356 0 1 1 -44.44672,0 22.223356,22.223356 0 1 1 44.44672,0 z"
+       inkscape:export-filename="/home/thibaut/Dropbox/Ebola/spatialPoisson/figs/spatialPoisson.png"
+       inkscape:export-xdpi="150"
+       inkscape:export-ydpi="150" />
+    <path
+       transform="matrix(0.35680278,0,0,0.35680278,285.68377,271.99924)"
+       sodipodi:type="arc"
+       style="fill:#ffffff;fill-opacity:0.72566373;stroke:none"
+       id="path2996-2"
+       sodipodi:cx="168.69548"
+       sodipodi:cy="247.2706"
+       sodipodi:rx="22.223356"
+       sodipodi:ry="22.223356"
+       d="m 190.91884,247.2706 a 22.223356,22.223356 0 1 1 -44.44672,0 22.223356,22.223356 0 1 1 44.44672,0 z"
+       inkscape:export-filename="/home/thibaut/Dropbox/Ebola/spatialPoisson/figs/spatialPoisson.png"
+       inkscape:export-xdpi="150"
+       inkscape:export-ydpi="150" />
+    <path
+       style="fill:none;stroke:#ffffff;stroke-width:0.35680279px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="m 292.93255,346.24855 -8.28902,18.46532"
+       id="path4415"
+       inkscape:connector-type="polyline"
+       inkscape:connector-curvature="0"
+       inkscape:connection-start="#path2996-0-1"
+       inkscape:connection-start-point="d4"
+       inkscape:connection-end="#path2996-8"
+       inkscape:connection-end-point="d4"
+       inkscape:export-filename="/home/thibaut/Dropbox/Ebola/spatialPoisson/figs/spatialPoisson.png"
+       inkscape:export-xdpi="150"
+       inkscape:export-ydpi="150" />
+    <path
+       style="fill:none;stroke:#ffffff;stroke-width:0.35680279px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="m 304.59165,346.31589 9.31964,21.41925"
+       id="path4417"
+       inkscape:connector-type="polyline"
+       inkscape:connector-curvature="0"
+       inkscape:connection-start="#path2996-0-1"
+       inkscape:connection-start-point="d4"
+       inkscape:connection-end="#path2996-02"
+       inkscape:connection-end-point="d4"
+       inkscape:export-filename="/home/thibaut/Dropbox/Ebola/spatialPoisson/figs/spatialPoisson.png"
+       inkscape:export-xdpi="150"
+       inkscape:export-ydpi="150" />
+    <path
+       style="fill:none;stroke:#ffffff;stroke-width:0.35680279px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="m 311.32842,340.29777 27.67673,15.96551"
+       id="path4419"
+       inkscape:connector-type="polyline"
+       inkscape:connector-curvature="0"
+       inkscape:connection-start="#path2996-0-1"
+       inkscape:connection-start-point="d4"
+       inkscape:connection-end="#path2996-2"
+       inkscape:connection-end-point="d4"
+       inkscape:export-filename="/home/thibaut/Dropbox/Ebola/spatialPoisson/figs/spatialPoisson.png"
+       inkscape:export-xdpi="150"
+       inkscape:export-ydpi="150" />
+    <path
+       transform="matrix(0.12106102,0,0,0.12106102,252.05291,291.80751)"
+       sodipodi:type="arc"
+       style="fill:#ffffff;fill-opacity:0.72566373;stroke:none"
+       id="path2996-0-5-6-1"
+       sodipodi:cx="168.69548"
+       sodipodi:cy="247.2706"
+       sodipodi:rx="22.223356"
+       sodipodi:ry="22.223356"
+       d="m 190.91884,247.2706 a 22.223356,22.223356 0 1 1 -44.44672,0 22.223356,22.223356 0 1 1 44.44672,0 z"
+       inkscape:export-filename="/home/thibaut/Dropbox/Ebola/spatialPoisson/figs/spatialPoisson.png"
+       inkscape:export-xdpi="150"
+       inkscape:export-ydpi="150" />
+    <path
+       transform="matrix(0.12106102,0,0,0.12106102,312.19967,306.33448)"
+       sodipodi:type="arc"
+       style="fill:#ffffff;fill-opacity:0.72566373;stroke:none"
+       id="path2996-0-5-6-4"
+       sodipodi:cx="168.69548"
+       sodipodi:cy="247.2706"
+       sodipodi:rx="22.223356"
+       sodipodi:ry="22.223356"
+       d="m 190.91884,247.2706 a 22.223356,22.223356 0 1 1 -44.44672,0 22.223356,22.223356 0 1 1 44.44672,0 z"
+       inkscape:export-filename="/home/thibaut/Dropbox/Ebola/spatialPoisson/figs/spatialPoisson.png"
+       inkscape:export-xdpi="150"
+       inkscape:export-ydpi="150" />
+    <g
+       id="g4536"
+       transform="matrix(0.49579832,0,0,0.49579832,181.62065,160.48274)"
+       inkscape:export-filename="/home/thibaut/Dropbox/Ebola/spatialPoisson/figs/spatialPoisson.png"
+       inkscape:export-xdpi="150"
+       inkscape:export-ydpi="150">
+      <path
+         sodipodi:nodetypes="cc"
+         inkscape:connector-curvature="0"
+         id="path4467"
+         d="m 376.61059,493.86901 c 79.77504,-24.71485 114.74839,-53.43487 136.65659,-84.87842"
+         style="opacity:0.79399145;fill:none;stroke:#ffffff;stroke-width:2;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:4, 2;stroke-dashoffset:0" />
+      <path
+         sodipodi:nodetypes="cc"
+         inkscape:connector-curvature="0"
+         id="path4467-9"
+         d="m 401.5646,493.86901 c 79.77504,-24.71485 125.10553,-53.43487 147.01373,-84.87842"
+         style="opacity:0.79399145;fill:none;stroke:#ffffff;stroke-width:2;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none" />
+      <path
+         sodipodi:nodetypes="cc"
+         inkscape:connector-curvature="0"
+         id="path4467-8"
+         d="m 426.51864,493.86901 c 79.77504,-24.71485 134.0341,-53.43487 155.9423,-84.87842"
+         style="opacity:0.79399145;fill:none;stroke:#ffffff;stroke-width:2;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:4, 2;stroke-dashoffset:0" />
+      <path
+         sodipodi:nodetypes="ccc"
+         inkscape:connector-curvature="0"
+         id="path4534"
+         d="m 374.28572,393.79075 0,98.57143 205.71428,0"
+         style="fill:none;stroke:#ffffff;stroke-width:5;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:0.93719806;stroke-dasharray:none" />
+    </g>
+  </g>
+</svg>

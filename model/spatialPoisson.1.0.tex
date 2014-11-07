@@ -1,0 +1,77 @@
+\documentclass[a4paper,11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{amsfonts}
+%opening
+\title{A spatial Poisson transmission model for Ebola (and other diseases)}
+\author{Thibaut, Pierre, Anne and the Ebola team}
+
+\begin{document}
+
+\maketitle
+% 
+\begin{abstract}
+The model is a meta-population model using a known (spatial) connectivity matrix between patches and a simple kernel to model dispersal. 
+The model is based on incidence data, with only infected individuals being known.
+
+\end{abstract}
+
+\newpage
+%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%
+\section{Notations}
+%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{itemize}
+ \item $I_t^i$: incidence in patch $i$ at time $t$ (data)
+ \item $I_t$: vector of incidence of all patches $(I_t^1, \ldots, I_t^N)$
+ \item $T$: the last date of the data
+ \item $D_{ij}$: distance between $i$ and $j$
+ \item $w(.)$: the known probability mass distribution of the generation time / serial interval
+ \item $N$: number of patches in the model
+ \item $n_t^i$: the number of infected individuals in patch $i$ at time $t$
+ \item $d_{j\rightarrow i}$: intensity of dispersion from $j$ to $i$
+ \item $\delta$: general dispersal parameter
+ \item $R$: the effective reproduction number
+ \item $t_k$: the date of infection of individual $k$
+ \item $f_\mathcal{P}(a,b)$: the Poisson density for $a$ observations and a rate $b$
+ \item $k(c,d)$: a spatial kernel for a distance $c$ and a parameter $d$
+\end{itemize}
+
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%
+\section{Model}
+%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%
+
+$I_t^i$ is assumed to follow a Poisson distribution of parameter $\lambda_t^i$.
+$\lambda_t^i$ is a sum over of the forces of infection of all patches towards $i$ (including $i \rightarrow i$). 
+We note $\beta_t^i$ the force of infection coming from infected individuals in patch $i$ at time $t$, defined as:
+\begin{equation}
+ \beta_t^i = R \sum_{k=1}^{n_t^i} w(t - t_k)
+\end{equation}
+The force of infection experienced by patch $i$ at time $t$ is then:
+\begin{equation}
+\lambda_t^i =  \sum_{j=1}^N d_{j\rightarrow i} \beta_t^i
+\end{equation}
+with:
+\begin{equation}
+d_{j\rightarrow i} = k(D_{ij}, \delta)
+\end{equation}
+
+The likelihood of $I_t$ is defined as:
+\begin{equation}
+p(I_t | R, \delta) = \prod_{i=1}^N f_\mathcal{P}(I_t^i, \lambda_t^i)
+\end{equation}
+
+By extension, the likelihood for the entire data:
+\begin{equation}
+p(I_1, \ldots, I_t | R, \delta) = \prod_{t=1}^T \prod_{i=1}^N f_\mathcal{P}(I_t^i, \lambda_t^i)
+\end{equation}
+
+
+\end{document}
