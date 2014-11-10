@@ -16,6 +16,9 @@ delta.ini=1
 move.rho=TRUE
 sd.rho=0.0001
 rho.ini=0.001
+move.pi=TRUE
+sd.pi=0.0001
+pi.ini=0.5
 logprior.delta=function(x) dexp(x, rate=1,log=TRUE)
 logprior.rho=function(x) 0
 logprior.pi=function(x) dbeta(x,1,1,log=TRUE)
@@ -52,6 +55,7 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
                          move.R=TRUE, sd.R=0.005, R.ini=1,
                          move.delta=TRUE, sd.delta=0.001, delta.ini=1,
                          move.rho=TRUE, sd.rho=0.0001, rho.ini=0.001,
+                         move.pi=TRUE, sd.pi=0.0001, pi.ini=0.5,
                          logprior.delta=function(x) dexp(x, rate=1,log=TRUE),
                          logprior.rho=function(x) 0,
                          logprior.pi=function(x) dbeta(x,1,1,log=TRUE),
@@ -259,7 +263,7 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
     } # end delta.move
 
 
-    ## MOVE BACKGROUND FORCE OF INFECTION 'rho'
+    ## MOVE PARAMETERS OF THE DISTRIBUTION OF R 'rho'
     ## movements impact:
     ## p(R | rho) p(rho)
     rho.ACC <- 0
@@ -285,10 +289,36 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
     } # end rho.move
 
 
+    ## MOVE PROPORTION OF REPORTED CASES 'pi'
+    ## movements impact:
+    ## p(I | N, pi) p(pi)
+    pi.ACC <- 0
+    pi.REJ <- 0
+    pi.move <- function(N, pi){
+        ## generate proposals ##
+        newpi <- rnorm(n=1, mean=pi, sd=sd.pi)
+
+        if(all(newpi>=0)){
+            if(log(runif(1)) <=  (LL.R(R, newpi) + logprior.pi(newpi) -
+                                  LL.R(R, pi) - logprior.pi(pi))){
+                pi <- newpi # accept
+                pi.ACC <<- pi.ACC+1
+            } else { # reject
+                pi.REJ <<- pi.REJ+1
+            }
+        } else { # reject
+            pi.REJ <<- pi.REJ+1
+        }
+
+        ## return moved vector
+        return(pi)
+    } # end pi.move
+
+
 
 
     ## TUNING ##
-    stop.tune.R <- stop.tune.delta <- stop.tune.rho <- FALSE
+    stop.tune.R <- stop.tune.delta <- stop.tune.rho  <- stop.tune.pi <- FALSE
 
     ## TUNING FUNCTION FOR R
     R.tune <- function(sd.R){
@@ -341,10 +371,28 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
     } # end rho.tune
 
 
+    ## TUNING FUNCTION FOR PI
+    pi.tune <- function(sd.pi){
+        ## jumps too large
+        if((pi.ACC/(pi.ACC + pi.REJ))<0.2){
+            return(sd.pi*0.8)
+        }
+
+        ## jumps too small
+        if((pi.ACC/(pi.ACC + pi.REJ))>0.5){
+            return(sd.pi*1.2)
+        }
+
+        ## if reaching here, stop tuning pi
+        stop.tune.pi <<- TRUE
+    } # end pi.tune
+
+
     ## INITIALIZE VALUES
     R <- R.ini
     delta <- delta.ini
     rho <- rho.ini
+    pi <- pi.ini
 
     ## basic message
     if(!quiet && tune) cat("Starting tuning proposal distributions...\n")
@@ -365,6 +413,9 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
         ## move rho if needed
         if(move.rho) rho <- rho.move(R, rho)
 
+        ## move pi if needed
+        if(move.pi) pi <- pi.move(N, pi)
+
         ## change parameters of proposal distributions ##
         ## (every 100 iterations)
         if(COUNTER %% 100 ==0){
@@ -372,9 +423,10 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
             if(move.R) sd.R <- R.tune(sd.R) else stop.tune.R <- TRUE
             if(move.delta) sd.delta <- delta.tune(sd.delta) else stop.tune.delta <- TRUE
             if(move.rho) sd.rho <- rho.tune(sd.rho) else stop.tune.rho <- TRUE
+            if(move.pi) sd.pi <- pi.tune(sd.pi) else stop.tune.pi <- TRUE
 
             ## check if we should stop
-            KEEPTUNING <- !(all(stop.tune.R, stop.tune.delta, stop.tune.rho))
+            KEEPTUNING <- !(all(stop.tune.R, stop.tune.delta, stop.tune.rho, stop.tune.pi))
         }
     }
 
@@ -407,6 +459,16 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
             cat("\ntotal: ", rho.ACC + rho.REJ)
             cat("\n")
         }
+
+        ## acceptance rates for pi
+        if(move.pi){
+            cat("\ntuned acceptance rate for pi: ", pi.ACC/(pi.ACC+pi.REJ))
+            cat("\naccepted: ", pi.ACC)
+            cat("\nreject: ", pi.REJ)
+            cat("\ntotal: ", pi.ACC + pi.REJ)
+            cat("\n")
+        }
+
     }
 
 
@@ -416,14 +478,15 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
     R <- R.ini
     delta <- delta.ini
     rho <- rho.ini
+    pi <- pi.ini
 
     ## BASIC HEADER
-    header <- "step\tpost\tlikelihood\tprior\tR\tdelta\trho"
+    header <- "step\tpost\tlikelihood\tprior\tR\tdelta\trho\tpi"
     cat(header, file=file.out)
 
     ## add first line
     ## temp: c(loglike, logprior)
-    temp <- c(LL(R, delta, rho), logprior.all(R, delta, rho))
+    temp <- c(LL.all(I,N,pi,R,delta,rho), logprior.all(delta=delta, rho=rho, pi=pi))
 
     ## check that initial LL is not -Inf
     if(!is.finite(temp[1])) warning("Initial likelihood is zero")
@@ -447,13 +510,16 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
         ## move rho if needed
         if(move.rho) rho <- rho.move(R, rho)
 
+        ## move pi if needed
+        if(move.pi) pi <- pi.move(N, pi)
+
         ## if retain this sample ##
         if(i %% sample.every ==0){
-            temp <- c(LL(R, delta, rho), logprior.all(R, delta, rho))
+            temp <- c(LL.all(I,N,pi,R,delta,rho), logprior.all(delta=delta, rho=rho, pi=pi))
             cat("\n", file=file.out, append=TRUE)
 
             ## add posterior
-            cat(c(i, sum(temp), temp, R, delta, rho), sep="\t", append=TRUE, file=file.out)
+            cat(c(i, sum(temp), temp, R, delta, rho, pi), sep="\t", append=TRUE, file=file.out)
 
             ## basic message
             if(!quiet) cat("..",i)
@@ -473,10 +539,10 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
     out$call <- match.call()
 
     ## acceptance rates ##
-    out$AR <- data.frame(accept=c(R.ACC,delta.ACC,rho.ACC),
-               reject=c(R.REJ,delta.REJ,rho.REJ))
+    out$AR <- data.frame(accept=c(R.ACC, delta.ACC, rho.ACC, pi.ACC),
+               reject=c(R.REJ, delta.REJ, rho.REJ, pi.REJ))
     out$AR$prop <- out$AR$accept / (out$AR$accept + out$AR$reject)
-    rownames(out$AR) <- c("R","delta","rho")
+    rownames(out$AR) <- c("R","delta","rho", "pi")
 
     ## add class, and return ##
     class(out) <- c("list", "epidemicMCMC")
