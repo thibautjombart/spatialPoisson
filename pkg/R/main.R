@@ -218,6 +218,8 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
     R.move <- function(N, R, delta, rho){
         ## generate proposals ##
         newR <- rnorm(n=1, mean=R, sd=sd.R)
+        ## we could use the fact that R~gamma(rho[1],rho[2]) for proposal...
+        ## newR <- rgamma(1, shape=rho[1], rate=rho[2])
 
         if(newR>=0){
             if(log(runif(1)) <=  (LL.N(N, newR, delta) + LL.R(newR, rho) -
