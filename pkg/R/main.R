@@ -199,8 +199,8 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
     ## PROBA OF OSERVED
     ## PRIORS ##
     ## all priors
-    logprior.all <- function(delta, rho){
-        return(logprior.delta(delta) + logprior.rho(rho))
+    logprior.all <- function(delta, rho, pi){
+        return(logprior.delta(delta) + logprior.rho(rho) + logprior.pi(pi))
     }
 
 
@@ -211,9 +211,9 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
     R.REJ <- 0
     R.move <- function(R, delta, rho, sigma=sd.R){
         ## generate proposals ##
-        newR <- R + rnorm(n=length(R), mean=0, sd=sd.R)
+        newR <- rnorm(n=1, mean=R, sd=sd.R)
 
-        if(all(newR>=0)){
+        if(newR>=0){
             if((r <- log(runif(1))) <=  (LL(newR, delta, rho) - LL(R, delta, rho) +
                                          logprior.R(newR) - logprior.R(R))){
                 R <- newR # accept
