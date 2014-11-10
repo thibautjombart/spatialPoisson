@@ -211,7 +211,7 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
     ## p(N | R, delta) p(R|rho)
     R.ACC <- 0
     R.REJ <- 0
-    R.move <- function(R, delta, rho, sigma=sd.R){
+    R.move <- function(N, R, delta, rho){
         ## generate proposals ##
         newR <- rnorm(n=1, mean=R, sd=sd.R)
 
@@ -234,6 +234,8 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
 
 
     ## MOVE SPATIAL PARAM 'DELTA'
+    ## movements impact:
+    ## p(N | R, delta) p(delta)
     delta.ACC <- 0
     delta.REJ <- 0
     delta.move <- function(R, delta, rho, sigma=sd.delta){
@@ -241,8 +243,8 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
         newdelta <- rnorm(n=1, mean=delta, sd=sd.delta)
 
         if(all(newdelta>=0)){
-            if((r <- log(runif(1))) <=  (LL(R, newdelta, rho) - LL(R, delta, rho) +
-                                         logprior.delta(newdelta) - logprior.delta(delta))){
+            if((r <- log(runif(1))) <=  (LL.N(N, R, newdelta) + logprior.delta(newdelta) -
+                                         LL.N(N, R, delta) - logprior.delta(delta))){
                 delta <- newdelta # accept
                 delta.ACC <<- delta.ACC+1
             } else { # reject
@@ -353,7 +355,7 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
 
         ## move stuff ##
         ## move R if needed
-        if(move.R) R <- R.move(R, delta, rho)
+        if(move.R) R <- R.move(N, R, delta, rho)
 
         ## move delta if needed
         if(move.delta) delta <- delta.move(R, delta, rho)
@@ -435,7 +437,7 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
     for(i in 1:n.iter){
         ## move stuff ##
         ## move R if needed
-        if(move.R) R <- R.move(R, delta, rho)
+        if(move.R) R <- R.move(N, R, delta, rho)
 
         ## move delta if needed
         if(move.delta) delta <- delta.move(R, delta, rho)

@@ -79,8 +79,8 @@ We want to sample from the posterior distribution proportional to:
 \end{equation}
 which can be rewritten
 \begin{equation}
-\underbrace{p(I | N, \pi) p(N | R, \delta) }_{likelihood} 
-\underbrace{ p(R | \rho) p(\rho) p(\delta) p(\pi)}_{priors} 
+\underbrace{p(I | N, \pi) p(N | R, \delta) p(R | \rho) }_{likelihood} 
+\underbrace{p(\rho) p(\delta) p(\pi)}_{priors} 
 \end{equation}
 
 The term $p(I | N, \pi)$ is the probability of the observed incidence given the 
