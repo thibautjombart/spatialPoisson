@@ -18,6 +18,7 @@ sd.rho=0.0001
 rho.ini=0.001
 logprior.delta=function(x) dexp(x, rate=1,log=TRUE)
 logprior.rho=function(x) 0
+logprior.pi=function(x) dbeta(x,1,1,log=TRUE)
 tune=TRUE
 max.tune=2e4
 file.out="mcmc.txt"
@@ -53,6 +54,7 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
                          move.rho=TRUE, sd.rho=0.0001, rho.ini=0.001,
                          logprior.delta=function(x) dexp(x, rate=1,log=TRUE),
                          logprior.rho=function(x) 0,
+                         logprior.pi=function(x) dbeta(x,1,1,log=TRUE),
                          tune=TRUE, max.tune=2e4,
                          file.out="mcmc.txt", quiet=FALSE){
 
