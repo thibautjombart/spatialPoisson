@@ -207,6 +207,8 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
 
     ## PARAMETER MOVEMENTS ##
     ## MOVE R
+    ## movements impact:
+    ## p(N | R, delta) p(R|rho)
     R.ACC <- 0
     R.REJ <- 0
     R.move <- function(R, delta, rho, sigma=sd.R){
@@ -214,8 +216,9 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
         newR <- rnorm(n=1, mean=R, sd=sd.R)
 
         if(newR>=0){
-            if((r <- log(runif(1))) <=  (LL(newR, delta, rho) - LL(R, delta, rho) +
-                                         logprior.R(newR) - logprior.R(R))){
+            if((r <- log(runif(1))) <=  (LL.N(N, newR, delta) + LL.R(newR, rho) -
+                                         LL.N(N, R, delta) - LL.R(R, rho)
+                                         )){
                 R <- newR # accept
                 R.ACC <<- R.ACC+1
             } else { # reject
@@ -235,7 +238,7 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
     delta.REJ <- 0
     delta.move <- function(R, delta, rho, sigma=sd.delta){
         ## generate proposals ##
-        newdelta <- delta + rnorm(n=length(delta), mean=0, sd=sd.delta)
+        newdelta <- rnorm(n=1, mean=delta, sd=sd.delta)
 
         if(all(newdelta>=0)){
             if((r <- log(runif(1))) <=  (LL(R, newdelta, rho) - LL(R, delta, rho) +
