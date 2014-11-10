@@ -260,15 +260,17 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
 
 
     ## MOVE BACKGROUND FORCE OF INFECTION 'rho'
+    ## movements impact:
+    ## p(R | rho) p(rho)
     rho.ACC <- 0
     rho.REJ <- 0
-    rho.move <- function(R, delta, rho, sigma=sd.rho){
+    rho.move <- function(R, rho){
         ## generate proposals ##
         newrho <- rho + rnorm(n=length(rho), mean=0, sd=sd.rho)
 
         if(all(newrho>=0)){
-            if((r <- log(runif(1))) <=  (LL(R, delta, newrho) - LL(R, delta, rho) +
-                                         logprior.rho(newrho) - logprior.rho(rho))){
+            if(log(runif(1)) <=  (LL.R(R, newrho) + logprior.rho(newrho) -
+                                         LL.R(R, rho) - logprior.rho(rho))){
                 rho <- newrho # accept
                 rho.ACC <<- rho.ACC+1
             } else { # reject
@@ -361,7 +363,7 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
         if(move.delta) delta <- delta.move(N, R, delta)
 
         ## move rho if needed
-        if(move.rho) rho <- rho.move(R, delta, rho)
+        if(move.rho) rho <- rho.move(R, rho)
 
         ## change parameters of proposal distributions ##
         ## (every 100 iterations)
@@ -443,7 +445,7 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
         if(move.delta) delta <- delta.move(N, R, delta)
 
         ## move rho if needed
-        if(move.rho) rho <- rho.move(R, delta, rho)
+        if(move.rho) rho <- rho.move(R, rho)
 
         ## if retain this sample ##
         if(i %% sample.every ==0){
