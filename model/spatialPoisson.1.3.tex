@@ -121,21 +121,11 @@ in patch $i$ at time $t$, defined by the renewal equation:
 \begin{equation}
  \beta_t^j = \sum_{s=1}^{t-1} N_s^j \:  w(t - s)
 \end{equation}
-Where $R$ is the reproduction number. 
-Note that we can easily turn it into a time-dependent term $R_t$, in which case 
-we will have to assume i) a functional form or ii) $R_t$ constant 
-between break-points. 
-Similarly, it can be turned into a patch-specific $R_i$, in which case 
-heterogeneity between patches can be modeled using a given distribution.
-This can get more complicated quickly.
-\\
-
 The force of infection experienced by patch $i$ at time $t$ is then:
 \begin{equation}
 \lambda_t^i = R \sum_{j=1}^P \beta_t^j \: k(d_{j\rightarrow i},\delta)
 \end{equation}
-\\
-
+where $R$ is the reproduction number. 
 The likelihood of the augmented data is thus given by:
 \begin{equation}
 p(N|R, \delta) \propto \prod_{t=2}^T \prod_{i=1}^P 
@@ -145,7 +135,14 @@ p(N|R, \delta) \propto \prod_{t=2}^T \prod_{i=1}^P
 \end{equation}
 
 
-The reproduction number is parametrised as a gamma (?) distribution:
+Note that we can easily turn it into a time-dependent term $R_t$, in which 
+case 
+we will have to assume i) a functional form or ii) $R_t$ constant 
+between break-points. 
+Similarly, it can be turned into a patch-specific $R_i$, in which case 
+heterogeneity between patches can be modeled using a given distribution.
+For the time being, heterogeneity in $R$ across space and time will be modelled 
+using a gamma (?) distribution:
 \begin{equation}
 p(R | \rho) = f_{\gamma} (R, \rho_1, \rho_2)
 \end{equation}
@@ -154,16 +151,15 @@ $\rho_2$ parameters.
 \\
 
 The prior of $\rho_1$ and $\rho_2$ are flat (?).
-\\
-
-The prior of $\delta$ and $\pi$ are exponentially distributed:
-
+The prior of $\delta$ is an exponential distribution of parameter 
+$\theta_{\delta}$:
 \begin{equation}
 p(\delta) = f_{exp}(\delta,  \theta_{\delta})
 \end{equation}
-
+The prior of $\pi$ is a beta distribution of parameter 
+$\theta_{\pi}$:
 \begin{equation}
-p(\pi) = f_{exp}(\delta,  \theta_{\pi})
+p(\pi) = f_{beta}(\delta,  \theta_{\pi})
 \end{equation}
 
 
