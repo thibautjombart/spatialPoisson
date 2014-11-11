@@ -56,7 +56,7 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
                          move.delta=TRUE, sd.delta=0.001, delta.ini=1,
                          move.rho=TRUE, sd.rho=0.0001, rho.ini=0.001,
                          move.pi=TRUE, sd.pi=0.0001, pi.ini=0.5,
-                         move.N=TRUE, sd.N=5, N.ini=NULL,
+                         move.N=TRUE, N.ini=NULL, move.N.every=100,
                          logprior.delta=function(x) dexp(x, rate=1,log=TRUE),
                          logprior.rho=function(x) 0,
                          logprior.pi=function(x) dbeta(x,1,1,log=TRUE),
@@ -120,6 +120,7 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
 
     ## store as vector for faster computations in 'dpois'
     incid.vec <- as.vector(incid.mat)
+    incid.tot <- sum(incid.vec)
 
 
     ## COMPUTE INFECTIOUSNESS (CONSTANT PART OF IT) ##
@@ -143,7 +144,7 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
 
     ## GET ALL BETAS (excluding t=1)
     get.betas <- function(N) {
-        return(t(sapply(2:nrow(N), function(t) get.beta.t(N,t))))
+        return(t(sapply(2:nrow(N), function(t) get.betas.t(N,t))))
     }
 
     ## ## ## GET ALL BETAS (second version, scales poorly with number of cases)
@@ -173,17 +174,19 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
 
 
     ## LOG-LIKELIHOOD AND PRIORS ##
+    ## all arguments are vectors, except for:
+    ## - N (matrix)
 
     ## GENERAL LIKELIHOOD
     ## p(I|N, pi) p(N|R, delta) p(R|rho)
-    LL.all <- function(I,N,pi,R,delta,rho){
-        return(LL.I(I,N,pi) + LL.N(N,R,delta) + LL.R(R,rho))
+    LL.all <- function(N,pi,R,delta,rho){
+        return(LL.I(incid.vec,N,pi) + LL.N(N,R,delta) + LL.R(R,rho))
     }
 
     ## PROBA OF OBSERVED INCIDENCE
     ## p(I|N, pi)
-    LL.I <- function(I,N,pi){
-        return(dbinom(I, size=N, prob=pi, log=TRUE))
+    LL.I <- function(N,pi){
+        return(dbinom(incid.vec, size=as.vector(N), prob=pi, log=TRUE))
     }
 
     ## PROBA OF ACTUAL (AUGMENTED) INCIDENCE
@@ -219,13 +222,13 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
     R.move <- function(N, R, delta, rho){
         ## generate proposals ##
         newR <- rnorm(n=1, mean=R, sd=sd.R)
-        ## we could use the fact that R~gamma(rho[1],rho[2]) for proposal...
+        ## we might use the fact that R~gamma(rho[1],rho[2]) for proposal...
         ## newR <- rgamma(1, shape=rho[1], rate=rho[2])
 
         if(newR>=0){
             if(log(runif(1)) <=  (LL.N(N, newR, delta) + LL.R(newR, rho) -
-                                         LL.N(N, R, delta) - LL.R(R, rho)
-                                         )){
+                                  LL.N(N, R, delta) - LL.R(R, rho)
+                                  )){
                 R <- newR # accept
                 R.ACC <<- R.ACC+1
             } else { # reject
@@ -251,7 +254,7 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
 
         if(all(newdelta>=0)){
             if(log(runif(1)) <=  (LL.N(N, R, newdelta) + logprior.delta(newdelta) -
-                                         LL.N(N, R, delta) - logprior.delta(delta))){
+                                  LL.N(N, R, delta) - logprior.delta(delta))){
                 delta <- newdelta # accept
                 delta.ACC <<- delta.ACC+1
             } else { # reject
@@ -277,7 +280,7 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
 
         if(all(newrho>=0)){
             if(log(runif(1)) <=  (LL.R(R, newrho) + logprior.rho(newrho) -
-                                         LL.R(R, rho) - logprior.rho(rho))){
+                                  LL.R(R, rho) - logprior.rho(rho))){
                 rho <- newrho # accept
                 rho.ACC <<- rho.ACC+1
             } else { # reject
@@ -302,8 +305,8 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
         newpi <- rnorm(n=1, mean=pi, sd=sd.pi)
 
         if(all(newpi>=0)){
-            if(log(runif(1)) <=  (LL.R(R, newpi) + logprior.pi(newpi) -
-                                  LL.R(R, pi) - logprior.pi(pi))){
+            if(log(runif(1)) <=  (LL.I(N, newpi) + logprior.pi(newpi) -
+                                  LL.I(N, pi) - logprior.pi(pi))){
                 pi <- newpi # accept
                 pi.ACC <<- pi.ACC+1
             } else { # reject
@@ -321,13 +324,16 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
     ## MOVE TRUE, UNOBSERVED INCIDENCE 'N'
     ## movements impact:
     ## p(I | N, pi) p(N | R, delta)
-    N.ACC <- 0
+    N.ACC <- 1
     N.REJ <- 0
-    N.move <- function(I, pi){
-        ## using E(N | pi, I) = I + pi*I
+    N.move <- function(pi){
+        ## Using E(N | pi, I) = I + pi*I
         ## just drawing pi*I (we force N>=I), i.e. no over-reporting
-        newN <- as.integer(table(factor(sample(length(I), size=round(sum(I)*(1+pi)), prob=I, replace=TRUE), levels=1:length(I))))
+        newN <- incid.mat + as.integer(table(factor(
+            sample(length(incid.vec), size=round(incid.tot*pi), prob=incid.vec, replace=TRUE),
+            levels=1:length(incid.vec))))
 
+        ## PREVIOUS VERSION - METROPOLIS ##
         ## ## generate proposals ##
         ## ## need to check this one with Anne
         ## newN <- round(rnorm(n=length(N), mean=N, sd=sd.N))
@@ -345,7 +351,7 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
         ## }
 
         ## return moved vector
-        return(N)
+        return(newN)
     } # end N.move
 
 
@@ -358,12 +364,12 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
     R.tune <- function(sd.R){
         ## jumps too large
         if((R.ACC/(R.ACC + R.REJ))<0.2){
-            return(sd.R*0.8)
+            return(sd.R*runif(1,.5,.95))
         }
 
         ## jumps too small
         if((R.ACC/(R.ACC + R.REJ))>0.5){
-            return(sd.R*1.2)
+            return(sd.R*runif(1,1.05,1.5))
         }
 
         ## if reaching here, stop tuning R
@@ -375,12 +381,12 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
     delta.tune <- function(sd.delta){
         ## jumps too large
         if((delta.ACC/(delta.ACC + delta.REJ))<0.2){
-            return(sd.delta*0.8)
+            return(sd.delta*runif(1,.5,.95))
         }
 
         ## jumps too small
         if((delta.ACC/(delta.ACC + delta.REJ))>0.5){
-            return(sd.delta*1.2)
+            return(sd.delta*runif(1,1.05,1.5))
         }
 
         ## if reaching here, stop tuning delta
@@ -392,12 +398,12 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
     rho.tune <- function(sd.rho){
         ## jumps too large
         if((rho.ACC/(rho.ACC + rho.REJ))<0.2){
-            return(sd.rho*0.8)
+            return(sd.rho*runif(1,.5,.95))
         }
 
         ## jumps too small
         if((rho.ACC/(rho.ACC + rho.REJ))>0.5){
-            return(sd.rho*1.2)
+            return(sd.rho*runif(1,1.05,1.5))
         }
 
         ## if reaching here, stop tuning rho
@@ -409,12 +415,12 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
     pi.tune <- function(sd.pi){
         ## jumps too large
         if((pi.ACC/(pi.ACC + pi.REJ))<0.2){
-            return(sd.pi*0.8)
+            return(sd.pi*runif(1,.5,.95))
         }
 
         ## jumps too small
         if((pi.ACC/(pi.ACC + pi.REJ))>0.5){
-            return(sd.pi*1.2)
+            return(sd.pi*runif(1,1.05,1.5))
         }
 
         ## if reaching here, stop tuning pi
@@ -427,8 +433,8 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
     delta <- delta.ini
     rho <- rho.ini
     pi <- pi.ini
-    N.ini <- as.integer(table(factor(sample(length(I), size=round(sum(I)*(1+pi)), prob=I, replace=TRUE), levels=1:length(I))))
-    
+    N <- N.move(pi)
+
     ## basic message
     if(!quiet && tune) cat("Starting tuning proposal distributions...\n")
 
@@ -450,6 +456,9 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
 
         ## move pi if needed
         if(move.pi) pi <- pi.move(N, pi)
+
+        ## move N if needed
+        if(move.N && (i %% move.N.every < 1)) N <- N.move(pi)
 
         ## change parameters of proposal distributions ##
         ## (every 100 iterations)
@@ -514,6 +523,7 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
     delta <- delta.ini
     rho <- rho.ini
     pi <- pi.ini
+    N <- N.move(pi)
 
     ## BASIC HEADER
     header <- "step\tpost\tlikelihood\tprior\tR\tdelta\trho\tpi"
@@ -521,7 +531,7 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
 
     ## add first line
     ## temp: c(loglike, logprior)
-    temp <- c(LL.all(I,N,pi,R,delta,rho), logprior.all(delta=delta, rho=rho, pi=pi))
+    temp <- c(LL.all(N,pi,R,delta,rho), logprior.all(delta=delta, rho=rho, pi=pi))
 
     ## check that initial LL is not -Inf
     if(!is.finite(temp[1])) warning("Initial likelihood is zero")
@@ -548,9 +558,12 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
         ## move pi if needed
         if(move.pi) pi <- pi.move(N, pi)
 
+        ## move N if needed
+        if(move.N && (i %% move.N.every < 1)) N <- N.move(pi)
+
         ## if retain this sample ##
         if(i %% sample.every ==0){
-            temp <- c(LL.all(I,N,pi,R,delta,rho), logprior.all(delta=delta, rho=rho, pi=pi))
+            temp <- c(LL.all(N,pi,R,delta,rho), logprior.all(delta=delta, rho=rho, pi=pi))
             cat("\n", file=file.out, append=TRUE)
 
             ## add posterior
