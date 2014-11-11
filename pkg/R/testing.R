@@ -1,5 +1,6 @@
 
 ## source code
+library(ggplot2)
 source("~/dev/spatialPoisson/pkg/R/main.R")
 source("~/dev/spatialPoisson/pkg/R/plotmcmc.R")
 
