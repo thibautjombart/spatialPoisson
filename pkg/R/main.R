@@ -14,10 +14,10 @@ move.delta=TRUE
 sd.delta=0.001
 delta.ini=1
 move.rho=TRUE
-sd.rho=0.0001
+sd.rho=0.001
 rho.ini=c(1,1)
 move.pi=TRUE
-sd.pi=0.0001
+sd.pi=0.001
 pi.ini=0.5
 move.N=TRUE
 N.ini=NULL
@@ -55,10 +55,10 @@ quiet=FALSE
 ## - quiet: a logical indicating if messages should be hidden
 epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
                          n.iter=2e4, sample.every=200,
-                         move.R=TRUE, sd.R=0.005, R.ini=1,
-                         move.delta=TRUE, sd.delta=0.001, delta.ini=1,
-                         move.rho=TRUE, sd.rho=0.0001, rho.ini=c(1,1),
-                         move.pi=TRUE, sd.pi=0.0001, pi.ini=0.5,
+                         move.R=TRUE, sd.R=0.01, R.ini=1,
+                         move.delta=TRUE, sd.delta=0.1, delta.ini=1,
+                         move.rho=TRUE, sd.rho=0.5, rho.ini=c(1,1),
+                         move.pi=TRUE, sd.pi=0.01, pi.ini=0.5,
                          move.N=TRUE, N.ini=NULL, move.N.every=100,
                          logprior.delta=function(x) dexp(x, rate=1,log=TRUE),
                          logprior.rho=function(x) 0,
@@ -189,6 +189,13 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
     ## PROBA OF OBSERVED INCIDENCE
     ## p(I|N, pi)
     LL.I <- function(N,pi){
+        temp <- sum(dbinom(incid.vec, size=as.vector(N), prob=pi, log=TRUE))
+        if(any(is.na(temp))) {
+            cat("\nNA in LL.I")
+            print(incid.vec)
+            print(as.vector(N))
+            print(pi)
+        }
         return(sum(dbinom(incid.vec, size=as.vector(N), prob=pi, log=TRUE)))
     }
 
@@ -307,7 +314,7 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
         ## generate proposals ##
         newpi <- rnorm(n=1, mean=pi, sd=sd.pi)
 
-        if(all(newpi>=0)){
+        if(newpi>=0 && newpi<=1){
             if(log(runif(1)) <=  (LL.I(N, newpi) + logprior.pi(newpi) -
                                   LL.I(N, pi) - logprior.pi(pi))){
                 pi <- newpi # accept
@@ -522,7 +529,7 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
 
     ## MCMC ##
     ## BASIC HEADER
-    header <- "step\tpost\tlikelihood\tprior\tR\tdelta\trho\tpi"
+    header <- "step\tpost\tlikelihood\tprior\tR\tdelta\trho1\trho2\tpi"
     cat(header, file=file.out)
 
     ## add first line
@@ -534,7 +541,7 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
 
     ## write to file
     cat("\n", file=file.out, append=TRUE)
-    cat(c(1, sum(temp), temp, R, delta, rho), sep="\t", append=TRUE, file=file.out)
+    cat(c(1, sum(temp), temp, R, delta, rho, pi), sep="\t", append=TRUE, file=file.out)
 
     ## basic message
     if(!quiet) cat("\nStarting MCMC: 1")
