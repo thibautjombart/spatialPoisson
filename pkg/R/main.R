@@ -323,22 +323,26 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
     ## p(I | N, pi) p(N | R, delta)
     N.ACC <- 0
     N.REJ <- 0
-    N.move <- function(I, N, pi){
-        ## generate proposals ##
-        ## need to check this one with Anne
-        newN <- round(rnorm(n=length(N), mean=N, sd=sd.N))
+    N.move <- function(I, pi){
+        ## using E(N | pi, I) = I + pi*I
+        ## just drawing pi*I (we force N>=I), i.e. no over-reporting
+        newN <- as.integer(table(factor(sample(length(I), size=round(sum(I)*(1+pi)), prob=I, replace=TRUE), levels=1:length(I))))
 
-        if(all(newN>=0)){
-            if(log(runif(1)) <=  (LL.I(I, newN, pi) + LL.N(newN, R, delta) -
-                                  LL.I(I, N, pi) - LL.N(N, R, delta))){
-                N <- newN # accept
-                N.ACC <<- N.ACC+1
-            } else { # reject
-                N.REJ <<- N.REJ+1
-            }
-        } else { # reject
-            N.REJ <<- N.REJ+1
-        }
+        ## ## generate proposals ##
+        ## ## need to check this one with Anne
+        ## newN <- round(rnorm(n=length(N), mean=N, sd=sd.N))
+
+        ## if(all(newN>=0)){
+        ##     if(log(runif(1)) <=  (LL.I(I, newN, pi) + LL.N(newN, R, delta) -
+        ##                           LL.I(I, N, pi) - LL.N(N, R, delta))){
+        ##         N <- newN # accept
+        ##         N.ACC <<- N.ACC+1
+        ##     } else { # reject
+        ##         N.REJ <<- N.REJ+1
+        ##     }
+        ## } else { # reject
+        ##     N.REJ <<- N.REJ+1
+        ## }
 
         ## return moved vector
         return(N)
@@ -423,7 +427,7 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
     delta <- delta.ini
     rho <- rho.ini
     pi <- pi.ini
-    N.ini <- table(factor(sample(length(I), size=round(sum(I)*(1+pi)), prob=I, replace=TRUE), levels=1:length(I)))
+    N.ini <- as.integer(table(factor(sample(length(I), size=round(sum(I)*(1+pi)), prob=I, replace=TRUE), levels=1:length(I))))
     
     ## basic message
     if(!quiet && tune) cat("Starting tuning proposal distributions...\n")
