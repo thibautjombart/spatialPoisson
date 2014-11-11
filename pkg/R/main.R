@@ -58,7 +58,7 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
                          move.R=TRUE, sd.R=0.01, R.ini=1,
                          move.delta=TRUE, sd.delta=0.1, delta.ini=1,
                          move.rho=TRUE, sd.rho=0.5, rho.ini=c(1,1),
-                         move.pi=TRUE, sd.pi=0.01, pi.ini=0.5,
+                         move.pi=TRUE, sd.pi=0.005, pi.ini=0.5,
                          move.N=TRUE, N.ini=NULL, move.N.every=100,
                          logprior.delta=function(x) dexp(x, rate=1,log=TRUE),
                          logprior.rho=function(x) 0,
@@ -282,11 +282,20 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
     ## MOVE PARAMETERS OF THE DISTRIBUTION OF R 'rho'
     ## movements impact:
     ## p(R | rho) p(rho)
+    ## note: moving mean and variance of the gamma dist
+    ## with shape 'alpha' and rate 'beta'
+    ## E(X) = alpha/beta
+    ## V(X) = alpha/beta^2
+    ## conversely:
+    ## alpha = E(X)^2 / V(X)
+    ## beta = E(X) / V(X)
     rho.ACC <- 0
     rho.REJ <- 0
     rho.move <- function(R, rho){
         ## generate proposals ##
-        newrho <- rho + rnorm(n=length(rho), mean=0, sd=sd.rho)
+        rho.newMean <- rnorm(n=1, mean=rho[1]/rho[2], sd=sd.rho)
+        rho.newVar <- rnorm(n=1, mean=rho[1]/rho[2]^2, sd=sd.rho)
+        newrho <- c(rho.newMean^2/rho.newVar, rho.newMean/rho.newVar)
 
         if(all(newrho>=0)){
             if(log(runif(1)) <=  (LL.R(R, newrho) + logprior.rho(newrho) -
