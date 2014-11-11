@@ -128,13 +128,13 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
 
     ## COMPUTE INFECTIOUSNESS (CONSTANT PART OF IT) ##
     ## AUXILIARY FUNCTION:
-    ## gets infectiousness for day 'date' and
-    ## a vector of onset dates 'onsets'
-    get.infec <- function(date, onsets){
-        temp <- as.integer(date-onsets)
-        out <- sum(w[temp[temp>0]])
-        return(out)
-    }
+    ## ## gets infectiousness for day 'date' and
+    ## ## a vector of onset dates 'onsets'
+    ## get.infec <- function(date, onsets){
+    ##     temp <- as.integer(date-onsets)
+    ##     out <- sum(w[temp[temp>0]])
+    ##     return(out)
+    ## }
 
 
     ## GET INFECTIOUSNESS ##
@@ -189,13 +189,13 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
     ## PROBA OF OBSERVED INCIDENCE
     ## p(I|N, pi)
     LL.I <- function(N,pi){
-        temp <- sum(dbinom(incid.vec, size=as.vector(N), prob=pi, log=TRUE))
-        if(any(is.na(temp))) {
-            cat("\nNA in LL.I")
-            print(incid.vec)
-            print(as.vector(N))
-            print(pi)
-        }
+        ## temp <- sum(dbinom(incid.vec, size=as.vector(N), prob=pi, log=TRUE))
+        ## if(any(is.na(temp))) {
+        ##     cat("\nNA in LL.I")
+        ##     print(incid.vec)
+        ##     print(as.vector(N))
+        ##     print(pi)
+        ## }
         return(sum(dbinom(incid.vec, size=as.vector(N), prob=pi, log=TRUE)))
     }
 
@@ -262,7 +262,7 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
         ## generate proposals ##
         newdelta <- rnorm(n=1, mean=delta, sd=sd.delta)
 
-        if(all(newdelta>=0)){
+        if(newdelta>=0){
             if(log(runif(1)) <=  (LL.N(N, R, newdelta) + logprior.delta(newdelta) -
                                   LL.N(N, R, delta) - logprior.delta(delta))){
                 delta <- newdelta # accept
@@ -346,10 +346,12 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
     N.ACC <- 1
     N.REJ <- 0
     N.move <- function(pi){
-        ## Using E(N | pi, I) = I + pi*I
+        ## Using E(N | pi, I) = (1+pi)I = I + pi*I
         ## just drawing pi*I (we force N>=I), i.e. no over-reporting
-        newN <- incid.mat + as.integer(table(factor(
-            sample(length(incid.vec), size=round(incid.tot*pi), prob=incid.vec, replace=TRUE),
+        newN <- incid.mat + rnbinom()
+
+            as.integer(table(factor(
+            sample(length(incid.vec), size=round(incid.tot*(1-pi)), prob=incid.vec, replace=TRUE),
             levels=1:length(incid.vec))))
 
         ## PREVIOUS VERSION - METROPOLIS ##

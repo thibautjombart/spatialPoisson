@@ -1,6 +1,7 @@
 
 ## source code
 source("~/dev/spatialPoisson/pkg/R/main.R")
+source("~/dev/spatialPoisson/pkg/R/plotmcmc.R")
 
 ## simulate toy data
 set.seed(1)
@@ -9,7 +10,7 @@ x <- data.frame(onset=sample(as.Date("2014-01-01")+0:100, 2000, replace=TRUE), p
 
 ## run MCMC
 set.seed(1)
-system.time(res <- epidemicMCMC(x,w=c(1,2,1),n.iter=2e4,sample.every=200, max.tune=1e4))
+system.time(res <- epidemicMCMC(x,w=c(1,2,1),n.iter=5e4,sample.every=500, max.tune=1e4))
 
 system.time(res <- epidemicMCMC(x,w=c(1,2,1),n.iter=1e5,sample.every=500))
 
