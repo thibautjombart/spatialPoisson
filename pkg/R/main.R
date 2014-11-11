@@ -15,10 +15,13 @@ sd.delta=0.001
 delta.ini=1
 move.rho=TRUE
 sd.rho=0.0001
-rho.ini=0.001
+rho.ini=c(1,1)
 move.pi=TRUE
 sd.pi=0.0001
 pi.ini=0.5
+move.N=TRUE
+N.ini=NULL
+move.N.every=100
 logprior.delta=function(x) dexp(x, rate=1,log=TRUE)
 logprior.rho=function(x) 0
 logprior.pi=function(x) dbeta(x,1,1,log=TRUE)
@@ -51,16 +54,16 @@ quiet=FALSE
 ## - file.out: path to the file where MCMC output are written
 ## - quiet: a logical indicating if messages should be hidden
 epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
-                         n.iter=1e5, sample.every=200,
+                         n.iter=2e4, sample.every=200,
                          move.R=TRUE, sd.R=0.005, R.ini=1,
                          move.delta=TRUE, sd.delta=0.001, delta.ini=1,
-                         move.rho=TRUE, sd.rho=0.0001, rho.ini=0.001,
+                         move.rho=TRUE, sd.rho=0.0001, rho.ini=c(1,1),
                          move.pi=TRUE, sd.pi=0.0001, pi.ini=0.5,
                          move.N=TRUE, N.ini=NULL, move.N.every=100,
                          logprior.delta=function(x) dexp(x, rate=1,log=TRUE),
                          logprior.rho=function(x) 0,
                          logprior.pi=function(x) dbeta(x,1,1,log=TRUE),
-                         tune=TRUE, max.tune=2e4,
+                         tune=TRUE, max.tune=1e4,
                          file.out="mcmc.txt", quiet=FALSE){
 
     ## CHECKS / HANDLE ARGUMENTS ##
@@ -180,13 +183,13 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
     ## GENERAL LIKELIHOOD
     ## p(I|N, pi) p(N|R, delta) p(R|rho)
     LL.all <- function(N,pi,R,delta,rho){
-        return(LL.I(incid.vec,N,pi) + LL.N(N,R,delta) + LL.R(R,rho))
+        return(LL.I(N,pi) + LL.N(N,R,delta) + LL.R(R,rho))
     }
 
     ## PROBA OF OBSERVED INCIDENCE
     ## p(I|N, pi)
     LL.I <- function(N,pi){
-        return(dbinom(incid.vec, size=as.vector(N), prob=pi, log=TRUE))
+        return(sum(dbinom(incid.vec, size=as.vector(N), prob=pi, log=TRUE)))
     }
 
     ## PROBA OF ACTUAL (AUGMENTED) INCIDENCE
@@ -458,7 +461,7 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
         if(move.pi) pi <- pi.move(N, pi)
 
         ## move N if needed
-        if(move.N && (i %% move.N.every < 1)) N <- N.move(pi)
+        if(move.N && (COUNTER %% move.N.every < 1)) N <- N.move(pi)
 
         ## change parameters of proposal distributions ##
         ## (every 100 iterations)
@@ -518,13 +521,6 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
 
 
     ## MCMC ##
-    ## INITIALIZE VALUES
-    R <- R.ini
-    delta <- delta.ini
-    rho <- rho.ini
-    pi <- pi.ini
-    N <- N.move(pi)
-
     ## BASIC HEADER
     header <- "step\tpost\tlikelihood\tprior\tR\tdelta\trho\tpi"
     cat(header, file=file.out)
