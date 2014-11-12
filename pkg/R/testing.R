@@ -6,14 +6,14 @@ source("~/dev/spatialPoisson/code/pkg/R/plotmcmc.R")
 
 ## simulate toy data
 set.seed(1)
-x <- data.frame(onset=sample(as.Date("2014-01-01")+0:100, 2000, replace=TRUE), patch=sample(c('a','b','c','d','e'), replace=TRUE, 2000))
+x <- data.frame(onset=sample(as.Date("2014-01-01")+0:10, 200, replace=TRUE), patch=sample(c('a','b','c','d','e'), replace=TRUE, 200))
 
 
 ## run MCMC
 set.seed(1)
 system.time(res <- epidemicMCMC(x,w=c(1,2,1),n.iter=5e4,sample.every=200, max.tune=1e4))
 
-system.time(res <- epidemicMCMC(x,w=c(1,2,1),n.iter=1e5,sample.every=500))
+system.time(res <- epidemicMCMC(x,w=c(1,2,1),n.iter=2e6,sample.every=500, max.tune=2e4))
 
 ## make some graphs
 pdf("alltraces.pdf")
