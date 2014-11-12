@@ -59,7 +59,7 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
                          move.delta=TRUE, sd.delta=0.1, delta.ini=1,
                          move.rho=TRUE, sd.rho=0.5, rho.ini=c(1,1),
                          move.pi=TRUE, sd.pi=0.005, pi.ini=0.5,
-                         move.N=TRUE, N.ini=NULL, move.N.every=100,
+                         move.N=TRUE, N.ini=NULL, sd.N=1, move.N.every=100,
                          logprior.delta=function(x) dexp(x, rate=1,log=TRUE),
                          logprior.rho=function(x) 0,
                          logprior.pi=function(x) dbeta(x,1,1,log=TRUE),
@@ -96,6 +96,7 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
     date.range <- range(x$onset)
     all.dates <- seq(date.range[1],date.range[2],by=1)
     n.dates <- length(all.dates)
+
 
     ## HANDLE SERIAL INTERVAL DISTRIBUTION
     ## note: w[i] is the proba of infection after i days
@@ -341,35 +342,39 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
 
 
     ## MOVE TRUE, UNOBSERVED INCIDENCE 'N'
+    ## size of the augmented data
+    n.augdata <- max(round(.1 * n.dates * n.patches),1)
+
     ## movements impact:
     ## p(I | N, pi) p(N | R, delta)
     N.ACC <- 1
     N.REJ <- 0
-    N.move <- function(pi){
-        ## Using E(N | pi, I) = (1+pi)I = I + pi*I
-        ## just drawing pi*I (we force N>=I), i.e. no over-reporting
-        newN <- incid.mat + rnbinom()
 
-            as.integer(table(factor(
-            sample(length(incid.vec), size=round(incid.tot*(1-pi)), prob=incid.vec, replace=TRUE),
-            levels=1:length(incid.vec))))
+    N.move <- function(N, pi){
+        ## generate proposals ##
+        ## find incidences to move
+        toMove <- sample(1:length(incid.vec), n.augdata)
 
-        ## PREVIOUS VERSION - METROPOLIS ##
-        ## ## generate proposals ##
-        ## ## need to check this one with Anne
-        ## newN <- round(rnorm(n=length(N), mean=N, sd=sd.N))
+        newN <- N
+        newN[toMove] <- newN[toMove] + round(rnorm(n.augdata, sd=sd.N))
+        ## alternative:
+        ## generate missing cases (N-I)
+        ## using E(N-I) = I * (1/pi - 1)
+        ## and drawing (N-I) from a Poisson
+        ## newN <- N
+        ## newN[toMove] <- incid.mat[toMove] + rpois(n.augdata, incid.mat[toMove] *  (1/pi -1))
 
-        ## if(all(newN>=0)){
-        ##     if(log(runif(1)) <=  (LL.I(I, newN, pi) + LL.N(newN, R, delta) -
-        ##                           LL.I(I, N, pi) - LL.N(N, R, delta))){
-        ##         N <- newN # accept
-        ##         N.ACC <<- N.ACC+1
-        ##     } else { # reject
-        ##         N.REJ <<- N.REJ+1
-        ##     }
-        ## } else { # reject
-        ##     N.REJ <<- N.REJ+1
-        ## }
+        if(all(newN>=incid.mat[toMove])){
+            if(log(runif(1)) <=  (LL.I(I, newN, pi) + LL.N(newN, R, delta) -
+                                  LL.I(I, N, pi) - LL.N(N, R, delta))){
+                N <- newN # accept
+                N.ACC <<- N.ACC+1
+            } else { # reject
+                N.REJ <<- N.REJ+1
+            }
+        } else { # reject
+            N.REJ <<- N.REJ+1
+        }
 
         ## return moved vector
         return(newN)
