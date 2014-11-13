@@ -76,11 +76,11 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
                          n.iter=2e4, sample.every=200,
                          move.R=TRUE, sd.R=0.01, R.ini=1,
                          move.delta=TRUE, sd.delta=0.1, delta.ini=1,
-                         move.rho=TRUE, sd.rho=0.5, rho.ini=c(1.5,.5),
+                         move.rho=TRUE, sd.rho=0.5, rho.ini=c(3,6),
                          move.pi=TRUE, sd.pi=0.005, pi.ini=0.5,
                          move.N=TRUE, N.ini=NULL, sd.N=1, move.N.every=50,
                          logprior.delta=function(x) dexp(x, rate=1,log=TRUE),
-                         logprior.rho=function(x) sum(dnorm(x, rho.ini, sd=0.1, log=TRUE)),
+                         logprior.rho=function(x) sum(dnorm(x, mean=rho.ini, sd=0.5, log=TRUE)),
                          logprior.pi=function(x) dbeta(x,1,1,log=TRUE),
                          tune=TRUE, max.tune=1e4,
                          file.out="mcmc.txt", quiet=FALSE){
@@ -232,8 +232,11 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
 
     ## PROBA OF TRANSMISSIBILITY GIVEN ITS HYPERPARAM
     ## p(R|rho)
+    ## note: rho is the mean and variance of the gamma
+    ## (not the shape and rate)
     LL.R <- function(R,rho){
-        return(dgamma(R, shape=rho[1], rate=rho[2], log=TRUE))
+        alphaBeta <- .gammaToShapeRate(rho[1],rho[2])
+        return(dgamma(R, shape=alphaBeta[1], rate=alphaBeta[2], log=TRUE))
     }
 
 
@@ -316,20 +319,13 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
     ## MOVE PARAMETERS OF THE DISTRIBUTION OF R 'rho'
     ## movements impact:
     ## p(R | rho) p(rho)
-    ## note: moving mean and variance of the gamma dist
-    ## with shape 'alpha' and rate 'beta'
-    ## E(X) = alpha/beta
-    ## V(X) = alpha/beta^2
-    ## conversely:
-    ## alpha = E(X)^2 / V(X)
-    ## beta = E(X) / V(X)
+    ## note: rho is mean and variance of the gamma
+    ## (not the shape and rate)
     rho.ACC <- 0
     rho.REJ <- 0
     rho.move <- function(R, rho){
         ## generate proposals ##
-        rho.newMean <- rnorm(n=1, mean=rho[1]/rho[2], sd=sd.rho)
-        rho.newVar <- rnorm(n=1, mean=rho[1]/rho[2]^2, sd=sd.rho)
-        newrho <- c(rho.newMean^2/rho.newVar, rho.newMean/rho.newVar)
+        newrho <- rnorm(n=2, mean=rho, sd=sd.rho)
 
         if(all(newrho>=0)){
             if(log(runif(1)) <=  (LL.R(R, newrho) + logprior.rho(newrho) -
