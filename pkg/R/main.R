@@ -203,15 +203,12 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
     ## GENERAL LIKELIHOOD
     ## p(I|N, pi) p(N|R, delta) p(R|rho)
     LL.all <- function(N,pi,R,delta,rho){
-        return(0)
         return(LL.I(N,pi) + LL.N(N,R,delta) + LL.R(R,rho))
     }
 
     ## PROBA OF OBSERVED INCIDENCE
     ## p(I|N, pi)
     LL.I <- function(N,pi){
-        return(0)
-
         ## temp <- sum(dbinom(incid.vec, size=as.vector(N), prob=pi, log=TRUE))
         ## if(any(is.na(temp))) {
         ##     cat("\nNA in LL.I")
@@ -225,7 +222,6 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
     ## PROBA OF ACTUAL (AUGMENTED) INCIDENCE
     ## p(N | R, delta)
     LL.N <- function(N, R, delta){
-        return(0)
         rates <- as.vector(get.lambdas(N, R, delta))
         return(sum(dpois(as.vector(N), rates, log=TRUE)))
     }
