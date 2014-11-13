@@ -1,5 +1,4 @@
 
-
 ## to simulate data
 x <- data.frame(onset=sample(as.Date("2014-01-01")+0:300, 5000, replace=TRUE), patch=sample(c('a','b','c','d','e'), replace=TRUE, 5000))
 w <- c(1,2,1)
@@ -33,6 +32,25 @@ quiet=FALSE
 
 
 
+##################################################
+## auxiliry functions for gamma parametrisation ##
+##################################################
+## with shape 'alpha' and rate 'beta'
+## E(X) = alpha/beta
+## V(X) = alpha/beta^2
+## conversely:
+## shape: alpha = E(X)^2 / V(X)
+## rate: beta = E(X) / V(X)
+
+.gammaToShapeRate <- function(E,V){
+    return(c(alpha=E^2/V, beta=E/V))
+}
+
+.gammaToMeanVar <- function(alpha,beta){
+    return(c(E=alpha/beta, V=alpha/beta^2))
+}
+
+
 
 ##################
 ## epidemicMCMC ##
@@ -58,11 +76,11 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
                          n.iter=2e4, sample.every=200,
                          move.R=TRUE, sd.R=0.01, R.ini=1,
                          move.delta=TRUE, sd.delta=0.1, delta.ini=1,
-                         move.rho=TRUE, sd.rho=0.5, rho.ini=c(1,1),
+                         move.rho=TRUE, sd.rho=0.5, rho.ini=c(1.5,.5),
                          move.pi=TRUE, sd.pi=0.005, pi.ini=0.5,
                          move.N=TRUE, N.ini=NULL, sd.N=1, move.N.every=50,
                          logprior.delta=function(x) dexp(x, rate=1,log=TRUE),
-                         logprior.rho=function(x) 0,
+                         logprior.rho=function(x) sum(dnorm(x, rho.ini, sd=0.1, log=TRUE)),
                          logprior.pi=function(x) dbeta(x,1,1,log=TRUE),
                          tune=TRUE, max.tune=1e4,
                          file.out="mcmc.txt", quiet=FALSE){
@@ -185,12 +203,15 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
     ## GENERAL LIKELIHOOD
     ## p(I|N, pi) p(N|R, delta) p(R|rho)
     LL.all <- function(N,pi,R,delta,rho){
+        return(0)
         return(LL.I(N,pi) + LL.N(N,R,delta) + LL.R(R,rho))
     }
 
     ## PROBA OF OBSERVED INCIDENCE
     ## p(I|N, pi)
     LL.I <- function(N,pi){
+        return(0)
+
         ## temp <- sum(dbinom(incid.vec, size=as.vector(N), prob=pi, log=TRUE))
         ## if(any(is.na(temp))) {
         ##     cat("\nNA in LL.I")
@@ -204,6 +225,7 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
     ## PROBA OF ACTUAL (AUGMENTED) INCIDENCE
     ## p(N | R, delta)
     LL.N <- function(N, R, delta){
+        return(0)
         rates <- as.vector(get.lambdas(N, R, delta))
         return(sum(dpois(as.vector(N), rates, log=TRUE)))
     }
@@ -236,17 +258,27 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
         newR <- rnorm(n=1, mean=R, sd=sd.R)
         ## we might use the fact that R~gamma(rho[1],rho[2]) for proposal...
         ## newR <- rgamma(1, shape=rho[1], rate=rho[2])
+        ## cat("\n\nold R:", R, "new R", newR)
+        ## temp1 <- LL.N(N, newR, delta) + LL.R(newR, rho) - LL.N(N, R, delta) - LL.R(R, rho)
+        ## cat("\nLL.N(N, newR, delta): ", LL.N(N, newR, delta))
+        ## cat("\nLL.R(newR, rho)", LL.R(newR, rho))
+        ## cat("\nLL.N(N, R, delta):",  LL.N(N, R, delta))
+        ## cat("\nLL.R(R, rho):",  LL.R(R, rho))
+        ## cat("\nacceptance ratio:", exp(temp1))
 
         if(newR>=0){
             if(log(runif(1)) <=  (LL.N(N, newR, delta) + LL.R(newR, rho) -
                                   LL.N(N, R, delta) - LL.R(R, rho)
                                   )){
+                ## cat("\n(accepted)")
                 R <- newR # accept
                 R.ACC <<- R.ACC+1
             } else { # reject
+                ## cat("\n(rejected)")
                 R.REJ <<- R.REJ+1
             }
         } else { # reject
+            ## cat("\n(rejected)")
             R.REJ <<- R.REJ+1
         }
 
@@ -608,8 +640,9 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
 
     ## acceptance rates ##
     out$AR <- data.frame(accept=c(R.ACC, delta.ACC, rho.ACC, pi.ACC),
-               reject=c(R.REJ, delta.REJ, rho.REJ, pi.REJ))
+                         reject=c(R.REJ, delta.REJ, rho.REJ, pi.REJ))
     out$AR$prop <- out$AR$accept / (out$AR$accept + out$AR$reject)
+    out$AR$sd <- c(sd.R, sd.delta, sd.rho, sd.pi)
     rownames(out$AR) <- c("R","delta","rho", "pi")
 
     ## add class, and return ##
