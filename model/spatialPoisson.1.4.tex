@@ -46,6 +46,8 @@ data)
 steps ($I = (I_1, \ldots, I_T)$; $N = (N_1, \ldots, N_T)$
  \item $I_{1 \rightarrow t}, N_{1 \rightarrow t}$: matrices of observed / true 
 incidence from time 1 to time $t$ 
+($I_{1 \rightarrow t} = (I_1, \ldots, I_t)$; $N_{1 \rightarrow t} = (N_1, 
+\ldots, N_t)$
  \item $D_{ij}$: distance between $i$ and $j$
  \item $w(.)$: the known probability mass distribution of the generation time / serial interval
 %  \item $n_t^i$: the number of infected individuals in patch $i$ at time $t$
@@ -107,19 +109,19 @@ It is computed as:
 p(N | R, \delta) & = & p(N_1, \ldots, N_t | R, \delta)\\
  & = & \underbrace{(N_1| R, \delta)}_{constant} p(N_2| N_1, R, \delta) \ldots 
        p(N_t| N_1, \ldots, N_{t-1}, R, \delta) \\
- & \propto & \prod_{t=2}^T p(N_t| N_1, \ldots, N_{t-1}, R, \delta)\\
+ & \propto & \prod_{t=2}^T p(N_t| N_{1 \rightarrow t-1}, R, \delta)\\
  & = & \prod_{t=2}^T \prod_{i=1}^P 
-       p(N_t^i| N_1, \ldots, N_{t-1}, R, \delta)\\
+       p(N_t^i| N_{1 \rightarrow t-1}, R, \delta)\\
 \end{eqnarray}
 with:
 \begin{equation}
-p(N_t^i| N_1, \ldots, N_{t-1}, R, \delta) = f_\mathcal{P}(N_t^i, \lambda_t^i)
+p(N_t^i| N_{1 \rightarrow t-1}, R, \delta) = f_\mathcal{P}(N_t^i, \lambda_t^i)
 \end{equation}
 where $f_\mathcal{P}$ if the p.m.f of a Poisson distribution and $\lambda_t^i$ 
 the force of infection towards patch $i$ and time $t$.
 $\lambda_t^i$ is a sum over of the forces of infection of all patches towards $i$ (including $i \rightarrow i$). 
 We note $\beta_t^j$ the global infectiousness coming from infected individuals 
-in patch $i$ at time $t$, defined by the renewal equation:
+in patch $j$ at time $t$, defined by the renewal equation:
 \begin{equation}
  \beta_t^j = \sum_{s=1}^{t-1} N_s^j \:  w(t - s)
 \end{equation}
@@ -144,15 +146,29 @@ between break-points.
 Similarly, it can be turned into a patch-specific $R_i$, in which case 
 heterogeneity between patches can be modeled using a given distribution.
 For the time being, heterogeneity in $R$ across space and time will be modelled 
-using a gamma (?) distribution:
+using a gamma distribution:
 \begin{equation}
 p(R | \rho) = f_{\gamma} (R, \rho_1, \rho_2)
 \end{equation}
-where $\rho$ is a vector containing the shape $\rho_1$ and scale 
-$\rho_2$ parameters.
+where $\rho$ is a vector containing the mean $\rho_1$ and variance
+$\rho_2$ of a gamma distribution.
+The corresponding shape parameter $\alpha$ is:
+\begin{equation}
+\alpha = \frac{\rho_1^2}{\rho_2}
+\end{equation}
+and the corresponding rate parameter $\beta$ is:
+\begin{equation}
+\beta = \frac{\rho_1}{\rho_2}
+\end{equation}
 \\
 
-The prior of $\rho_1$ and $\rho_2$ are flat (?).
+The prior of $\rho_1$ and $\rho_2$ are normally distributed; by default we 
+use:
+\begin{equation}
+\rho_1 \sim \mathcal{N}(3,0.5) \mbox{ and } \rho_2 \sim \mathcal{N}(6,0.5)
+\end{equation}
+
+
 The prior of $\delta$ is an exponential distribution of parameter 
 $\theta_{\delta}$:
 \begin{equation}
@@ -174,17 +190,41 @@ p(\pi) = f_{beta}(\delta,  \theta_{\pi})
 %%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%
 
-
+We seek a Gibbs sampler for the augmented incidence at time $t$, $N_t$.
+For this, we need to know (up to an additive or multiplicative constant) the 
+distribution of $N_t$ conditional on everything else:
 \begin{eqnarray}
 p(N_t | N_{1 \rightarrow t-1}, I_{1 \rightarrow t-1}, R, \rho, \delta, \pi) 
 \propto p(N_{1 \rightarrow t}, I_{1 \rightarrow t}, R, \rho, \delta, \pi) \\
 \propto p( I_{1 \rightarrow t} | N_{1 \rightarrow t}, \pi) 
 p(N_t | N_{1 \rightarrow t-1},  R, \delta) \\
-= (\prod_{s=1}^t p(I_s| N_s, \pi)) 
-(p(N_t | N_{1 \rightarrow t-1}, R, \delta)) \\
-\propto (\prod_{j=1}^P f_{\mathcal{B}}(I_t^j, N_t^j, \pi))
-(\prod_{j=1}^P  f_{\mathcal{P}}(N_t^j, \lambda_t^j))
+= (\prod_{s=1}^t p(I_s| N_s, \pi)) \:\:
+p(N_t | N_{1 \rightarrow t-1}, R, \delta))  \\
+\propto p(I_t | N_t, \pi) \:\:
+p(N_t | N_{1 \rightarrow t-1},  R, \delta)\\
+= (\prod_{j=1}^P f_{\mathcal{B}}(I_t^j, N_t^j, \pi))
+(\prod_{j=1}^P  f_{\mathcal{P}}(N_t^j, \lambda_t^j))\\
+= \prod_{j=1}^P [ {N_t^j \choose I_t^j} \pi^{I_t^j} 
+(1-\pi)^{N_t^j - I_t^j} \:\: 
+\frac{{\lambda_t^j}^{N_t^j} e^{-\lambda_t^j}}{N_t^j!}]\\
+\propto \prod_{j=1}^P [ \frac{N_t^j!}{I_t^j!(N_t^j-I_t^j)!} 
+(1-\pi)^{N_t^j - I_t^j} \:\: 
+\frac{{\lambda_t^j}^{N_t^j}}{N_t^j!}]\\
+\propto \prod_{j=1}^P [ \frac{1}{(N_t^j-I_t^j)!} 
+(1-\pi)^{N_t^j - I_t^j} \:\: 
+{\lambda_t^j}^{N_t^j - I_t^j}{\lambda_t^j}^{I_t^j}]\\
+\propto \prod_{j=1}^P \frac{1}{(N_t^j-I_t^j)!} 
+[(1-\pi)\lambda_t^j]^{N_t^j - I_t^j}\\
+\propto \prod_{j=1}^P f_{\mathcal{P}}(N_t^j-I_t^j , (1-\pi)\lambda_t^j)
 \end{eqnarray}
+The conditional distribution of $N_t$ is therefore proportional to the 
+probability of the number of unobserved cases $N_t^j-I_t^j$, given by a Poisson 
+distribution of rate $(1-\pi)\lambda_t^j$. This is an intuitive result: the 
+actual incidence is larger for smaller reporting rates ($\pi$) and higher 
+forces of infection ($\lambda_t^j$).
+In practice, we can derive $N_t$ by sampling directly the number of unobserved 
+cases $N_t^j-I_t^j$ from a Poisson distribution of parameter 
+$(1-\pi)\lambda_t^j$.
 
 %The likelihood of $I_t$, the incidence vector at time $t$, is defined as:
 %\begin{equation}
