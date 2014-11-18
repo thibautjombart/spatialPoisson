@@ -1,34 +1,34 @@
 
-## to simulate data
-x <- data.frame(onset=sample(as.Date("2014-01-01")+0:300, 5000, replace=TRUE), patch=sample(c('a','b','c','d','e'), replace=TRUE, 5000))
-w <- c(1,2,1)
-D.patches=NULL
-spa.kernel=dexp
-n.iter=1e5
-sample.every=200
-move.R=TRUE
-sd.R=0.01
-R.ini=1
-move.delta=TRUE
-sd.delta=0.001
-delta.ini=1
-move.rho=TRUE
-sd.rho=0.001
-rho.ini=c(1,1)
-move.pi=TRUE
-sd.pi=0.001
-pi.ini=0.5
-move.N=TRUE
-N.ini=NULL
-sd.N=1
-move.N.every=50
-logprior.delta=function(x) dexp(x, rate=1,log=TRUE)
-logprior.rho=function(x) 0
-logprior.pi=function(x) dbeta(x,1,1,log=TRUE)
-tune=TRUE
-max.tune=2e4
-file.out="mcmc.txt"
-quiet=FALSE
+## ## to simulate data
+## x <- data.frame(onset=sample(as.Date("2014-01-01")+0:300, 5000, replace=TRUE), patch=sample(c('a','b','c','d','e'), replace=TRUE, 5000))
+## w <- c(1,2,1)
+## D.patches=NULL
+## spa.kernel=dexp
+## n.iter=1e5
+## sample.every=200
+## move.R=TRUE
+## sd.R=0.01
+## R.ini=1
+## move.delta=TRUE
+## sd.delta=0.001
+## delta.ini=1
+## move.rho=TRUE
+## sd.rho=0.001
+## rho.ini=c(1,1)
+## move.pi=TRUE
+## sd.pi=0.001
+## pi.ini=0.5
+## move.N=TRUE
+## N.ini=NULL
+## sd.N=1
+## move.N.every=50
+## logprior.delta=function(x) dexp(x, rate=1,log=TRUE)
+## logprior.rho=function(x) 0
+## logprior.pi=function(x) dbeta(x,1,1,log=TRUE)
+## tune=TRUE
+## max.tune=2e4
+## file.out="mcmc.txt"
+## quiet=FALSE
 
 
 
@@ -72,7 +72,7 @@ quiet=FALSE
 ## - max.tune: the maximum number of iterations for the auto-tuning
 ## - file.out: path to the file where MCMC output are written
 ## - quiet: a logical indicating if messages should be hidden
-epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
+epidemicMCMC <- function(onset, patch, w, D.patches=NULL, spa.kernel=dexp,
                          n.iter=2e4, sample.every=200,
                          move.R=TRUE, sd.R=0.01, R.ini=1,
                          move.delta=TRUE, sd.delta=0.1, delta.ini=1,
@@ -86,6 +86,7 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
                          file.out="mcmc.txt", quiet=FALSE){
 
     ## CHECKS / HANDLE ARGUMENTS ##
+    x <- data.frame(onset=onset, patch=patch)
     x <- na.omit(x)
     x$patch <- factor(x$patch)
     patches <- levels(x$patch)
@@ -97,6 +98,9 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
         D.patches <- matrix(0, ncol=n.patches,nrow=n.patches)
         colnames(D.patches) <- rownames(D.patches) <- patches
     }
+
+    ## force matrix
+    if(!is.matrix(D.patches)) D.patches <- as.matrix(D.patches)
 
     ## force null diagonal
     diag(D.patches) <- 0
