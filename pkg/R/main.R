@@ -380,6 +380,35 @@ epidemicMCMC <- function(onset, patch, w, D.patches=NULL, spa.kernel=dexp,
     } # end pi.move
 
 
+
+    ## MOVE PROPORTION OF REPORTED CASES 'pi' AND AUGMENTED DATA 'N'
+    ## movements impact:
+    ## p(I | N, pi) p(pi)
+    pi.ACC <- 0
+    pi.REJ <- 0
+    pi.N.move <- function(N, pi, LAMBDAS){
+        ## generate proposals ##
+        newpi <- rnorm(n=1, mean=pi, sd=sd.pi)
+        newN <- N.move(N, newpi, LAMBDAS)
+
+        if(newpi>=0 && newpi<=1){
+            if(log(runif(1)) <=  (LL.I(newN, newpi) + logprior.pi(newpi) -
+                                  LL.I(N, pi) - logprior.pi(pi))){
+                pi <- newpi # accept
+                N <- newN
+                pi.ACC <<- pi.ACC+1
+            } else { # reject
+                pi.REJ <<- pi.REJ+1
+            }
+        } else { # reject
+            pi.REJ <<- pi.REJ+1
+        }
+
+        ## return moved vector
+        return(list(pi,N))
+    } # end pi.N.move
+
+
     ## MOVE TRUE, UNOBSERVED INCIDENCE 'N'
     ## uses a Gibbs sampler
     ## (N_t^j-I_t^j) ~ Poisson((1-pi)*lambda_t^j)
@@ -520,7 +549,11 @@ epidemicMCMC <- function(onset, patch, w, D.patches=NULL, spa.kernel=dexp,
         if(move.rho) rho <- rho.move(R, rho)
 
         ## move pi if needed
-        if(move.pi) pi <- pi.move(N, pi)
+        if(move.pi) {
+            temp <- pi.N.move(N, pi, LAMBDAS)
+            pi <- temp[[1]]
+            N <- temp[[2]]
+        }
 
         ## move N if needed
         if(move.N && (COUNTER %% move.N.every < 1)) {
@@ -617,7 +650,11 @@ epidemicMCMC <- function(onset, patch, w, D.patches=NULL, spa.kernel=dexp,
         if(move.rho) rho <- rho.move(R, rho)
 
         ## move pi if needed
-        if(move.pi) pi <- pi.move(N, pi)
+        if(move.pi) {
+            temp <- pi.N.move(N, pi, LAMBDAS)
+            pi <- temp[[1]]
+            N <- temp[[2]]
+        }
 
         ## move N if needed
         if(move.N && (i %% move.N.every < 1)) {
