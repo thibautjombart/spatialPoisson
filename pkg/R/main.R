@@ -1,34 +1,35 @@
 
-## ## to simulate data
+## to simulate data
 ## x <- data.frame(onset=sample(as.Date("2014-01-01")+0:300, 5000, replace=TRUE), patch=sample(c('a','b','c','d','e'), replace=TRUE, 5000))
 ## w <- c(1,2,1)
 ## D.patches=NULL
-## spa.kernel=dexp
-## n.iter=1e5
-## sample.every=200
-## move.R=TRUE
-## sd.R=0.01
-## R.ini=1
-## move.delta=TRUE
-## sd.delta=0.001
-## delta.ini=1
-## move.rho=TRUE
-## sd.rho=0.001
-## rho.ini=c(1,1)
-## move.pi=TRUE
-## sd.pi=0.001
-## pi.ini=0.5
-## move.N=TRUE
-## N.ini=NULL
-## sd.N=1
-## move.N.every=50
-## logprior.delta=function(x) dexp(x, rate=1,log=TRUE)
-## logprior.rho=function(x) 0
-## logprior.pi=function(x) dbeta(x,1,1,log=TRUE)
-## tune=TRUE
-## max.tune=2e4
-## file.out="mcmc.txt"
-## quiet=FALSE
+
+spa.kernel=dexp
+n.iter=1e5
+sample.every=200
+move.R=TRUE
+sd.R=0.01
+R.ini=1
+move.delta=TRUE
+sd.delta=0.001
+delta.ini=1
+move.rho=TRUE
+sd.rho=0.001
+rho.ini=c(1,1)
+move.pi=TRUE
+sd.pi=0.001
+pi.ini=0.5
+move.N=TRUE
+N.ini=NULL
+sd.N=1
+move.N.every=50
+logprior.delta=function(x) dexp(x, rate=1,log=TRUE)
+logprior.rho=function(x) 0
+logprior.pi=function(x) dbeta(x,1,1,log=TRUE)
+tune=TRUE
+max.tune=2e4
+file.out="mcmc.txt"
+quiet=FALSE
 
 
 
@@ -104,6 +105,9 @@ epidemicMCMC <- function(onset, patch, w, D.patches=NULL, spa.kernel=dexp,
 
     ## force null diagonal
     diag(D.patches) <- 0
+
+    ## make sure ordering of patches is consistent
+    D.patches <- D.patches[patches,patches]
 
     ## useful warnings/errors
     if(any(D.patches<0)) warning("D.patches has negative entries")
@@ -475,11 +479,32 @@ epidemicMCMC <- function(onset, patch, w, D.patches=NULL, spa.kernel=dexp,
     BETAS <- get.betas(N)
     LAMBDAS <- get.lambdas.fast(BETAS, R, delta)
 
+    ## check if initial log likelihood is -Inf
+    if(!is.finite(LL.all(N,pi,R,delta,rho,BETAS))){
+        cat("\nProblem: initial log-likelihood is -Inf")
+        cat("\nDetails of the log-likelihood components")
+        cat("\np(I|N, pi): ", LL.I(N, pi))
+        cat("\np(N|R, delta): ", LL.N(N, R, delta, BETAS))
+        cat("\np(R|rho): ", LL.R(R, rho))
+        cat("\n")
+    }
+
+    ## check if initial log prior is -Inf
+    if(!is.finite(logprior.all(delta, rho, pi))){
+        cat("\nProblem: initial log-prior is -Inf")
+        cat("\nDetails of the log-prior components")
+        cat("\np(pi): ", logprior.pi(pi))
+        cat("\np(delta): ", logprior.pi(delta))
+        cat("\np(rho): ", logprior.pi(rho))
+        cat("\n")
+    }
+
     ## basic message
     if(!quiet && tune) cat("Starting tuning proposal distributions...\n")
 
     COUNTER <- 0
     KEEPTUNING <- tune
+
     while(KEEPTUNING && (COUNTER<=max.tune)){
         ## update counter
         COUNTER <- COUNTER + 1
