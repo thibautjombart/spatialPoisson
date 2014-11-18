@@ -170,9 +170,6 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
         return(t(sapply(2:nrow(N), function(t) get.betas.t(N,t))))
     }
 
-    ## ## ## GET ALL BETAS (second version, scales poorly with number of cases)
-    ## get.beta.all <- function(x) tapply(x$day, x$patch, function(dates) # do by patch
-    ##                                    sapply(2:nrow(x), function(t)sum(w[t-dates[dates<t]]))) # sum infectiousnesses
 
 
     ## GET LAMBDA FOR ALL PATCHES ##
@@ -195,6 +192,15 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
             )
     }
 
+    ## faster alternative with pre-computed betas
+    get.lambdas.fast <- function(BETAS, R, delta){
+        return(
+            (R* BETAS %*%
+             prop.table(spa.kernel(D.patches, delta),2)
+             )
+            )
+    }
+
 
     ## LOG-LIKELIHOOD AND PRIORS ##
     ## all arguments are vectors, except for:
@@ -202,8 +208,8 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
 
     ## GENERAL LIKELIHOOD
     ## p(I|N, pi) p(N|R, delta) p(R|rho)
-    LL.all <- function(N,pi,R,delta,rho){
-        return(LL.I(N,pi) + LL.N(N,R,delta) + LL.R(R,rho))
+    LL.all <- function(N,pi,R,delta,rho,BETAS){
+        return(LL.I(N,pi) + LL.N(N,R,delta,BETAS) + LL.R(R,rho))
     }
 
     ## PROBA OF OBSERVED INCIDENCE
@@ -221,8 +227,8 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
 
     ## PROBA OF ACTUAL (AUGMENTED) INCIDENCE
     ## p(N | R, delta)
-    LL.N <- function(N, R, delta){
-        rates <- as.vector(get.lambdas(N, R, delta))
+    LL.N <- function(N, R, delta, BETAS){
+        rates <- as.vector(get.lambdas.fast(BETAS, R, delta))
         return(sum(dpois(as.vector(N), rates, log=TRUE)))
     }
 
@@ -252,7 +258,7 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
     ## p(N | R, delta) p(R|rho)
     R.ACC <- 0
     R.REJ <- 0
-    R.move <- function(N, R, delta, rho){
+    R.move <- function(N, R, delta, rho, BETAS){
         ## generate proposals ##
         newR <- rnorm(n=1, mean=R, sd=sd.R)
         ## we might use the fact that R~gamma(rho[1],rho[2]) for proposal...
@@ -266,8 +272,8 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
         ## cat("\nacceptance ratio:", exp(temp1))
 
         if(newR>=0){
-            if(log(runif(1)) <=  (LL.N(N, newR, delta) + LL.R(newR, rho) -
-                                  LL.N(N, R, delta) - LL.R(R, rho)
+            if(log(runif(1)) <=  (LL.N(N, newR, delta, BETAS) + LL.R(newR, rho) -
+                                  LL.N(N, R, delta, BETAS) - LL.R(R, rho)
                                   )){
                 ## cat("\n(accepted)")
                 R <- newR # accept
@@ -291,13 +297,13 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
     ## p(N | R, delta) p(delta)
     delta.ACC <- 0
     delta.REJ <- 0
-    delta.move <- function(N, R, delta){
+    delta.move <- function(N, R, delta, BETAS){
         ## generate proposals ##
         newdelta <- rnorm(n=1, mean=delta, sd=sd.delta)
 
         if(newdelta>=0){
-            if(log(runif(1)) <=  (LL.N(N, R, newdelta) + logprior.delta(newdelta) -
-                                  LL.N(N, R, delta) - logprior.delta(delta))){
+            if(log(runif(1)) <=  (LL.N(N, R, newdelta, BETAS) + logprior.delta(newdelta) -
+                                  LL.N(N, R, delta, BETAS) - logprior.delta(delta))){
                 delta <- newdelta # accept
                 delta.ACC <<- delta.ACC+1
             } else { # reject
@@ -367,41 +373,18 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
 
 
     ## MOVE TRUE, UNOBSERVED INCIDENCE 'N'
-    ## size of the augmented data
-    n.augdata <- max(round(.1 * n.dates * n.patches),1)
+    ## uses a Gibbs sampler
+    ## (N_t^j-I_t^j) ~ Poisson((1-pi)*lambda_t^j)
+    ## all dates but the first one can be moved
+    augdat.size <- (n.dates-1)*n.patches
+    N.move <- function(N, pi, LAMBDAS){
+        ## compute rates for the Poisson distribution
+        rates <- (1-pi)*LAMBDAS
 
-    ## movements impact:
-    ## p(I | N, pi) p(N | R, delta)
-    N.ACC <- 1
-    N.REJ <- 0
+        ## draw data
+        N[-1,] <- incid.mat[-1,] + rpois(n=augdat.size, lambda=rates)
 
-    N.move <- function(N, pi){
-        ## generate proposals ##
-        ## find incidences to move
-        toMove <- sample(1:length(incid.vec), n.augdata)
-
-        newN <- N
-        newN[toMove] <- newN[toMove] + round(rnorm(n.augdata, sd=sd.N))
-        ## alternative:
-        ## generate missing cases (N-I)
-        ## using E(N-I) = I * (1/pi - 1)
-        ## and drawing (N-I) from a Poisson
-        ## newN <- N
-        ## newN[toMove] <- incid.mat[toMove] + rpois(n.augdata, incid.mat[toMove] *  (1/pi -1))
-
-        if(all(newN[toMove]>=incid.mat[toMove])){
-            if(log(runif(1)) <=  (LL.I(newN, pi) + LL.N(newN, R, delta) -
-                                  LL.I(N, pi) - LL.N(N, R, delta))){
-                N <- newN # accept
-                N.ACC <<- N.ACC+1
-            } else { # reject
-                N.REJ <<- N.REJ+1
-            }
-        } else { # reject
-            N.REJ <<- N.REJ+1
-        }
-
-        ## return moved vector
+        ## return moved matrix
         return(N)
     } # end N.move
 
@@ -485,6 +468,8 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
     rho <- rho.ini
     pi <- pi.ini
     N <- round(incid.mat/pi)
+    BETAS <- get.betas(N)
+    LAMBDAS <- get.lambdas.fast(BETAS, R, delta)
 
     ## basic message
     if(!quiet && tune) cat("Starting tuning proposal distributions...\n")
@@ -497,10 +482,10 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
 
         ## move stuff ##
         ## move R if needed
-        if(move.R) R <- R.move(N, R, delta, rho)
+        if(move.R) R <- R.move(N, R, delta, rho, BETAS)
 
         ## move delta if needed
-        if(move.delta) delta <- delta.move(N, R, delta)
+        if(move.delta) delta <- delta.move(N, R, delta, BETAS)
 
         ## move rho if needed
         if(move.rho) rho <- rho.move(R, rho)
@@ -509,7 +494,10 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
         if(move.pi) pi <- pi.move(N, pi)
 
         ## move N if needed
-        if(move.N && (COUNTER %% move.N.every < 1)) N <- N.move(N, pi)
+        if(move.N && (COUNTER %% move.N.every < 1)) {
+            N <- N.move(N, pi, BETAS)
+            BETAS <- get.betas(N)
+        }
 
         ## change parameters of proposal distributions ##
         ## (every 100 iterations)
@@ -575,7 +563,7 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
 
     ## add first line
     ## temp: c(loglike, logprior)
-    temp <- c(LL.all(N,pi,R,delta,rho), logprior.all(delta=delta, rho=rho, pi=pi))
+    temp <- c(LL.all(N,pi,R,delta,rho,BETAS), logprior.all(delta=delta, rho=rho, pi=pi))
 
     ## check that initial LL is not -Inf
     if(!is.finite(temp[1])) warning("Initial likelihood is zero")
@@ -591,10 +579,10 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
     for(i in 1:n.iter){
         ## move stuff ##
         ## move R if needed
-        if(move.R) R <- R.move(N, R, delta, rho)
+        if(move.R) R <- R.move(N, R, delta, rho, BETAS)
 
         ## move delta if needed
-        if(move.delta) delta <- delta.move(N, R, delta)
+        if(move.delta) delta <- delta.move(N, R, delta, BETAS)
 
         ## move rho if needed
         if(move.rho) rho <- rho.move(R, rho)
@@ -603,11 +591,14 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
         if(move.pi) pi <- pi.move(N, pi)
 
         ## move N if needed
-        if(move.N && (i %% move.N.every < 1)) N <- N.move(N, pi)
+        if(move.N && (i %% move.N.every < 1)) {
+            N <- N.move(N, pi, BETAS)
+            BETAS <- get.betas(N)
+        }
 
         ## if retain this sample ##
         if(i %% sample.every ==0){
-            temp <- c(LL.all(N,pi,R,delta,rho), logprior.all(delta=delta, rho=rho, pi=pi))
+            temp <- c(LL.all(N,pi,R,delta,rho,BETAS), logprior.all(delta=delta, rho=rho, pi=pi))
             cat("\n", file=file.out, append=TRUE)
 
             ## add posterior
