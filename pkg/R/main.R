@@ -495,7 +495,7 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
 
         ## move N if needed
         if(move.N && (COUNTER %% move.N.every < 1)) {
-            N <- N.move(N, pi, BETAS)
+            N <- N.move(N, pi, LAMBDAS)
             BETAS <- get.betas(N)
         }
 
@@ -592,7 +592,7 @@ epidemicMCMC <- function(x, w, D.patches=NULL, spa.kernel=dexp,
 
         ## move N if needed
         if(move.N && (i %% move.N.every < 1)) {
-            N <- N.move(N, pi, BETAS)
+            N <- N.move(N, pi, LAMBDAS)
             BETAS <- get.betas(N)
         }
 
