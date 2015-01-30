@@ -13,9 +13,6 @@ R.ini=1
 move.delta=TRUE
 sd.delta=0.001
 delta.ini=1
-move.rho=TRUE
-sd.rho=0.001
-rho.ini=c(1,1)
 move.pi=TRUE
 sd.pi=0.001
 pi.ini=0.5
@@ -23,8 +20,8 @@ move.N=TRUE
 N.ini=NULL
 sd.N=1
 move.N.every=50
+logprior.R=function(x) dgamma(R, shape=2, rate=1, log=TRUE)
 logprior.delta=function(x) dexp(x, rate=1,log=TRUE)
-logprior.rho=function(x) 0
 logprior.pi=function(x) dbeta(x,1,1,log=TRUE)
 tune=TRUE
 max.tune=2e4
@@ -75,13 +72,12 @@ quiet=FALSE
 ## - quiet: a logical indicating if messages should be hidden
 epidemicMCMC <- function(onset, patch, w, D.patches=NULL, spa.kernel=dexp,
                          n.iter=2e4, sample.every=200,
-                         move.R=TRUE, sd.R=0.01, R.ini=1,
+                         move.R=TRUE, sd.R=0.01, R.ini=1.1,
                          move.delta=TRUE, sd.delta=0.1, delta.ini=1,
-                         move.rho=TRUE, sd.rho=0.5, rho.ini=c(3,6),
-                         move.pi=TRUE, sd.pi=0.005, pi.ini=0.5,
+                         move.pi=FALSE, sd.pi=0.005, pi.ini=0.5,
                          move.N=TRUE, N.ini=NULL, sd.N=1, move.N.every=50,
                          logprior.delta=function(x) dexp(x, rate=1,log=TRUE),
-                         logprior.rho=function(x) sum(dnorm(x, mean=rho.ini, sd=0.5, log=TRUE)),
+                         logprior.R=function(x) dgamma(R, shape=2, rate=1, log=TRUE),
                          logprior.pi=function(x) dbeta(x,1,1,log=TRUE),
                          tune=TRUE, max.tune=1e4,
                          file.out="mcmc.txt", quiet=FALSE){
@@ -187,7 +183,6 @@ epidemicMCMC <- function(onset, patch, w, D.patches=NULL, spa.kernel=dexp,
     ## - beta: infectiousness for day (row) x patches (col)
     ## - P: connectivity from patches (row) to patches (col),
     ## standardized by column
-    ## - rho: the background force of infection
     ## here, beta = R * infect.mat
     ## and P is given by 'spa.kernel(D.pacthes, delta)'
     ## but needs to be column-standardized
@@ -215,9 +210,9 @@ epidemicMCMC <- function(onset, patch, w, D.patches=NULL, spa.kernel=dexp,
     ## - N (matrix)
 
     ## GENERAL LIKELIHOOD
-    ## p(I|N, pi) p(N|R, delta) p(R|rho)
-    LL.all <- function(N,pi,R,delta,rho,BETAS){
-        return(LL.I(N,pi) + LL.N(N,R,delta,BETAS) + LL.R(R,rho))
+    ## p(I|N, pi) p(N|R, delta)
+    LL.all <- function(N,pi,R,delta,BETAS){
+        return(LL.I(N,pi) + LL.N(N,R,delta,BETAS))
     }
 
     ## PROBA OF OBSERVED INCIDENCE
@@ -240,22 +235,13 @@ epidemicMCMC <- function(onset, patch, w, D.patches=NULL, spa.kernel=dexp,
         return(sum(dpois(as.vector(N), rates, log=TRUE)))
     }
 
-    ## PROBA OF TRANSMISSIBILITY GIVEN ITS HYPERPARAM
-    ## p(R|rho)
-    ## note: rho is the mean and variance of the gamma
-    ## (not the shape and rate)
-    LL.R <- function(R,rho){
-        alphaBeta <- .gammaToShapeRate(rho[1],rho[2])
-        return(dgamma(R, shape=alphaBeta[1], rate=alphaBeta[2], log=TRUE))
-    }
-
 
 
     ## PROBA OF OSERVED
     ## PRIORS ##
     ## all priors
-    logprior.all <- function(delta, rho, pi){
-        return(logprior.delta(delta) + logprior.rho(rho) + logprior.pi(pi))
+    logprior.all <- function(delta, R, pi){
+        return(logprior.delta(delta) + logprior.R(R) + logprior.pi(pi))
     }
 
 
@@ -263,25 +249,16 @@ epidemicMCMC <- function(onset, patch, w, D.patches=NULL, spa.kernel=dexp,
     ## PARAMETER MOVEMENTS ##
     ## MOVE R
     ## movements impact:
-    ## p(N | R, delta) p(R|rho)
+    ## p(N | R, delta) p(R)
     R.ACC <- 0
     R.REJ <- 0
-    R.move <- function(N, R, delta, rho, BETAS){
+    R.move <- function(N, R, delta, BETAS){
         ## generate proposals ##
         newR <- rnorm(n=1, mean=R, sd=sd.R)
-        ## we might use the fact that R~gamma(rho[1],rho[2]) for proposal...
-        ## newR <- rgamma(1, shape=rho[1], rate=rho[2])
-        ## cat("\n\nold R:", R, "new R", newR)
-        ## temp1 <- LL.N(N, newR, delta) + LL.R(newR, rho) - LL.N(N, R, delta) - LL.R(R, rho)
-        ## cat("\nLL.N(N, newR, delta): ", LL.N(N, newR, delta))
-        ## cat("\nLL.R(newR, rho)", LL.R(newR, rho))
-        ## cat("\nLL.N(N, R, delta):",  LL.N(N, R, delta))
-        ## cat("\nLL.R(R, rho):",  LL.R(R, rho))
-        ## cat("\nacceptance ratio:", exp(temp1))
 
         if(newR>=0){
-            if(log(runif(1)) <=  (LL.N(N, newR, delta, BETAS) + LL.R(newR, rho) -
-                                  LL.N(N, R, delta, BETAS) - LL.R(R, rho)
+            if(log(runif(1)) <=  (LL.N(N, newR, delta, BETAS) + logprior.R(newR) -
+                                  LL.N(N, R, delta, BETAS) - logprior.R(R)
                                   )){
                 ## cat("\n(accepted)")
                 R <- newR # accept
@@ -324,34 +301,6 @@ epidemicMCMC <- function(onset, patch, w, D.patches=NULL, spa.kernel=dexp,
         ## return moved vector
         return(delta)
     } # end delta.move
-
-
-    ## MOVE PARAMETERS OF THE DISTRIBUTION OF R 'rho'
-    ## movements impact:
-    ## p(R | rho) p(rho)
-    ## note: rho is mean and variance of the gamma
-    ## (not the shape and rate)
-    rho.ACC <- 0
-    rho.REJ <- 0
-    rho.move <- function(R, rho){
-        ## generate proposals ##
-        newrho <- rnorm(n=2, mean=rho, sd=sd.rho)
-
-        if(all(newrho>=0)){
-            if(log(runif(1)) <=  (LL.R(R, newrho) + logprior.rho(newrho) -
-                                  LL.R(R, rho) - logprior.rho(rho))){
-                rho <- newrho # accept
-                rho.ACC <<- rho.ACC+1
-            } else { # reject
-                rho.REJ <<- rho.REJ+1
-            }
-        } else { # reject
-            rho.REJ <<- rho.REJ+1
-        }
-
-        ## return moved vector
-        return(rho)
-    } # end rho.move
 
 
     ## MOVE PROPORTION OF REPORTED CASES 'pi'
@@ -429,7 +378,7 @@ epidemicMCMC <- function(onset, patch, w, D.patches=NULL, spa.kernel=dexp,
 
 
     ## TUNING ##
-    stop.tune.R <- stop.tune.delta <- stop.tune.rho  <- stop.tune.pi <- FALSE
+    stop.tune.R <- stop.tune.delta <- stop.tune.pi <- FALSE
 
     ## TUNING FUNCTION FOR R
     R.tune <- function(sd.R){
@@ -465,23 +414,6 @@ epidemicMCMC <- function(onset, patch, w, D.patches=NULL, spa.kernel=dexp,
     } # end delta.tune
 
 
-    ## TUNING FUNCTION FOR RHO
-    rho.tune <- function(sd.rho){
-        ## jumps too large
-        if((rho.ACC/(rho.ACC + rho.REJ))<0.2){
-            return(sd.rho*runif(1,.5,.95))
-        }
-
-        ## jumps too small
-        if((rho.ACC/(rho.ACC + rho.REJ))>0.5){
-            return(sd.rho*runif(1,1.05,1.5))
-        }
-
-        ## if reaching here, stop tuning rho
-        stop.tune.rho <<- TRUE
-    } # end rho.tune
-
-
     ## TUNING FUNCTION FOR PI
     pi.tune <- function(sd.pi){
         ## jumps too large
@@ -502,29 +434,27 @@ epidemicMCMC <- function(onset, patch, w, D.patches=NULL, spa.kernel=dexp,
     ## INITIALIZE VALUES
     R <- R.ini
     delta <- delta.ini
-    rho <- rho.ini
     pi <- pi.ini
     N <- round(incid.mat/pi)
     BETAS <- get.betas(N)
     LAMBDAS <- get.lambdas.fast(BETAS, R, delta)
 
     ## check if initial log likelihood is -Inf
-    if(!is.finite(LL.all(N,pi,R,delta,rho,BETAS))){
+    if(!is.finite(LL.all(N,pi,R,delta,BETAS))){
         cat("\nProblem: initial log-likelihood is -Inf")
         cat("\nDetails of the log-likelihood components")
         cat("\np(I|N, pi): ", LL.I(N, pi))
         cat("\np(N|R, delta): ", LL.N(N, R, delta, BETAS))
-        cat("\np(R|rho): ", LL.R(R, rho))
         cat("\n")
     }
 
     ## check if initial log prior is -Inf
-    if(!is.finite(logprior.all(delta, rho, pi))){
+    if(!is.finite(logprior.all(delta, R, pi))){
         cat("\nProblem: initial log-prior is -Inf")
         cat("\nDetails of the log-prior components")
-        cat("\np(pi): ", logprior.pi(pi))
         cat("\np(delta): ", logprior.pi(delta))
-        cat("\np(rho): ", logprior.pi(rho))
+        cat("\np(R): ", logprior.R(R))
+        cat("\np(pi): ", logprior.pi(pi))
         cat("\n")
     }
 
@@ -540,13 +470,10 @@ epidemicMCMC <- function(onset, patch, w, D.patches=NULL, spa.kernel=dexp,
 
         ## move stuff ##
         ## move R if needed
-        if(move.R) R <- R.move(N, R, delta, rho, BETAS)
+        if(move.R) R <- R.move(N, R, delta, BETAS)
 
         ## move delta if needed
         if(move.delta) delta <- delta.move(N, R, delta, BETAS)
-
-        ## move rho if needed
-        if(move.rho) rho <- rho.move(R, rho)
 
         ## move pi if needed
         if(move.pi) {
@@ -567,11 +494,10 @@ epidemicMCMC <- function(onset, patch, w, D.patches=NULL, spa.kernel=dexp,
             ## update SDs
             if(move.R) sd.R <- R.tune(sd.R) else stop.tune.R <- TRUE
             if(move.delta) sd.delta <- delta.tune(sd.delta) else stop.tune.delta <- TRUE
-            if(move.rho) sd.rho <- rho.tune(sd.rho) else stop.tune.rho <- TRUE
             if(move.pi) sd.pi <- pi.tune(sd.pi) else stop.tune.pi <- TRUE
 
             ## check if we should stop
-            KEEPTUNING <- !(all(stop.tune.R, stop.tune.delta, stop.tune.rho, stop.tune.pi))
+            KEEPTUNING <- !(all(stop.tune.R, stop.tune.delta, stop.tune.pi))
         }
     }
 
@@ -596,15 +522,6 @@ epidemicMCMC <- function(onset, patch, w, D.patches=NULL, spa.kernel=dexp,
             cat("\n")
         }
 
-        ## acceptance rates for rho
-        if(move.rho){
-            cat("\ntuned acceptance rate for rho: ", rho.ACC/(rho.ACC+rho.REJ))
-            cat("\naccepted: ", rho.ACC)
-            cat("\nreject: ", rho.REJ)
-            cat("\ntotal: ", rho.ACC + rho.REJ)
-            cat("\n")
-        }
-
         ## acceptance rates for pi
         if(move.pi){
             cat("\ntuned acceptance rate for pi: ", pi.ACC/(pi.ACC+pi.REJ))
@@ -620,19 +537,19 @@ epidemicMCMC <- function(onset, patch, w, D.patches=NULL, spa.kernel=dexp,
 
     ## MCMC ##
     ## BASIC HEADER
-    header <- "step\tpost\tlikelihood\tprior\tR\tdelta\trho1\trho2\tpi"
+    header <- "step\tpost\tlikelihood\tprior\tR\tdelta\tpi"
     cat(header, file=file.out)
 
     ## add first line
     ## temp: c(loglike, logprior)
-    temp <- c(LL.all(N,pi,R,delta,rho,BETAS), logprior.all(delta=delta, rho=rho, pi=pi))
+    temp <- c(LL.all(N,pi,R,delta,BETAS), logprior.all(delta=delta, R=R, pi=pi))
 
     ## check that initial LL is not -Inf
     if(!is.finite(temp[1])) warning("Initial likelihood is zero")
 
     ## write to file
     cat("\n", file=file.out, append=TRUE)
-    cat(c(1, sum(temp), temp, R, delta, rho, pi), sep="\t", append=TRUE, file=file.out)
+    cat(c(1, sum(temp), temp, R, delta, pi), sep="\t", append=TRUE, file=file.out)
 
     ## basic message
     if(!quiet) cat("\nStarting MCMC: 1")
@@ -641,13 +558,10 @@ epidemicMCMC <- function(onset, patch, w, D.patches=NULL, spa.kernel=dexp,
     for(i in 1:n.iter){
         ## move stuff ##
         ## move R if needed
-        if(move.R) R <- R.move(N, R, delta, rho, BETAS)
+        if(move.R) R <- R.move(N, R, delta, BETAS)
 
         ## move delta if needed
         if(move.delta) delta <- delta.move(N, R, delta, BETAS)
-
-        ## move rho if needed
-        if(move.rho) rho <- rho.move(R, rho)
 
         ## move pi if needed
         if(move.pi) {
@@ -664,11 +578,11 @@ epidemicMCMC <- function(onset, patch, w, D.patches=NULL, spa.kernel=dexp,
 
         ## if retain this sample ##
         if(i %% sample.every ==0){
-            temp <- c(LL.all(N,pi,R,delta,rho,BETAS), logprior.all(delta=delta, rho=rho, pi=pi))
+            temp <- c(LL.all(N,pi,R,delta,BETAS), logprior.all(delta=delta, R=R, pi=pi))
             cat("\n", file=file.out, append=TRUE)
 
             ## add posterior
-            cat(c(i, sum(temp), temp, R, delta, rho, pi), sep="\t", append=TRUE, file=file.out)
+            cat(c(i, sum(temp), temp, R, delta, pi), sep="\t", append=TRUE, file=file.out)
 
             ## basic message
             if(!quiet) cat("..",i)
@@ -688,11 +602,11 @@ epidemicMCMC <- function(onset, patch, w, D.patches=NULL, spa.kernel=dexp,
     out$call <- match.call()
 
     ## acceptance rates ##
-    out$AR <- data.frame(accept=c(R.ACC, delta.ACC, rho.ACC, pi.ACC),
-                         reject=c(R.REJ, delta.REJ, rho.REJ, pi.REJ))
+    out$AR <- data.frame(accept=c(R.ACC, delta.ACC, pi.ACC),
+                         reject=c(R.REJ, delta.REJ, pi.REJ))
     out$AR$prop <- out$AR$accept / (out$AR$accept + out$AR$reject)
-    out$AR$sd <- c(sd.R, sd.delta, sd.rho, sd.pi)
-    rownames(out$AR) <- c("R","delta","rho", "pi")
+    out$AR$sd <- c(sd.R, sd.delta, sd.pi)
+    rownames(out$AR) <- c("R","delta","pi")
 
     ## add class, and return ##
     class(out) <- c("list", "epidemicMCMC")
