@@ -35,7 +35,7 @@ SI <- dgamma(1:10, shape=SI.gammaPar[1], rate=SI.gammaPar[1])
 barplot(SI,names=1:10, xlab="Days after onset", main="Serial interval")
 
 
-res <- epidemicMCMC(onset[onset>20], patch[onset>20], w=SI)
+res <- epidemicMCMC(onset[onset>20], patch[onset>20], w=SI, pi.ini=0.25)
 
 par(mfrow=c(3,3))
 for(i in 2:9) plot(res$chains[-1,1], res$chains[-1,i], main=names(res$chains)[i],type="l",xlab="",ylab="")
