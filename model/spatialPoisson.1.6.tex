@@ -217,10 +217,10 @@ For this, we need to know (up to an additive or multiplicative constant) the
 distribution of $N$ conditional on everything else.
 We have:
 \begin{eqnarray}
- p(N|I, R, \delta, \pi) & = & p(N_1 | I, 
+ p(N|I, R, \delta, \pi) & = & p(N_1 | I, R,
 \delta, \pi) \prod_{t=2}^T p(N_t | N_1, ..., N_{t-1}, I, 
-\delta, \pi) \\
-&\propto & \prod_{t=2}^T p(N_t | N_1, ..., N_{t-1}, I, 
+R, \delta, \pi) \\
+&\propto & \prod_{t=2}^T p(N_t | N_1, ..., N_{t-1}, I, R,
 \delta, \pi)
 \end{eqnarray}
 where:
